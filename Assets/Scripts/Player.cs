@@ -17,6 +17,7 @@ public class Player : MonoBehaviour
     public float sideGrip = 6f;
 
     [Header("Ground Check")]
+    public Transform groundCheck;
     public float groundCheckDistance = 2f;
     public LayerMask groundLayer;
 
