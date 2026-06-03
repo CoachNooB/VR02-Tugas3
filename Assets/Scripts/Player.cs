@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody))]
 public class Player : MonoBehaviour
@@ -25,6 +26,12 @@ public class Player : MonoBehaviour
     public float downForce = 10f;
     public float slopeAlignSpeed = 8f;
 
+    [Header("Game Management")]
+    public int raceLap = 3;
+    public int currentLap = 0;
+    public TextMeshProUGUI lapText;
+    public TextMeshProUGUI finishText;
+
     private Rigidbody rb;
 
     private Vector2 moveInput;
@@ -36,6 +43,7 @@ public class Player : MonoBehaviour
 
     private void Awake()
     {
+        lapText.text= currentLap.ToString() + "/" + raceLap.ToString();
         rb = GetComponent<Rigidbody>();
 
         rb.useGravity = true;
@@ -266,5 +274,17 @@ public class Player : MonoBehaviour
             rayStart,
             rayStart + Vector3.down * groundCheckDistance
         );
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("StartFinishLine")) {
+            currentLap++;
+            if (currentLap + 1 > raceLap) {
+                finishText.text = "You Finished the Race!";
+                Time.timeScale = 0f;
+            }
+            lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
+        }
     }
 }
