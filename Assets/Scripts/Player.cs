@@ -43,7 +43,9 @@ public class Player : MonoBehaviour
 
     private void Awake()
     {
-        lapText.text= currentLap.ToString() + "/" + raceLap.ToString();
+        // pengaman: jangan crash kalau lapText belum dipasang di scene
+        if (lapText != null)
+            lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
         rb = GetComponent<Rigidbody>();
 
         rb.useGravity = true;
@@ -281,10 +283,12 @@ public class Player : MonoBehaviour
         if (other.CompareTag("StartFinishLine")) {
             currentLap++;
             if (currentLap + 1 > raceLap) {
-                finishText.text = "You Finished the Race!";
+                if (finishText != null)
+                    finishText.text = "You Finished the Race!";
                 Time.timeScale = 0f;
             }
-            lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
+            if (lapText != null)
+                lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
         }
     }
 }
