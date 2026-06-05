@@ -42,11 +42,11 @@ public class StartCountdown : MonoBehaviour
         if (timer > 0f)
         {
             // tampilkan 3, 2, 1 (dibulatkan ke atas)
-            countdownText.text = Mathf.Ceil(timer).ToString();
+            countdownText.text = "<color=yellow>" + Mathf.Ceil(timer).ToString() + "</color>";
         }
         else if (timer > -goDuration)
         {
-            countdownText.text = "GO!";
+            countdownText.text = "<color=green>GO!</color>";
         }
         else
         {

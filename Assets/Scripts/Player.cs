@@ -45,7 +45,9 @@ public class Player : MonoBehaviour
     {
         // pengaman: jangan crash kalau lapText belum dipasang di scene
         if (lapText != null)
+        {
             lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
+        }
         rb = GetComponent<Rigidbody>();
 
         rb.useGravity = true;
@@ -280,15 +282,29 @@ public class Player : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("StartFinishLine")) {
+        if (other.CompareTag("StartFinishLine")) 
+        {
+            lapText.gameObject.SetActive(true);
             currentLap++;
-            if (currentLap + 1 > raceLap) {
+            if (currentLap > raceLap) 
+            {
                 if (finishText != null)
+                {
+                    lapText.gameObject.SetActive(false);
                     finishText.text = "You Finished the Race!";
-                Time.timeScale = 0f;
+                    Time.timeScale = 0f;
+                }
             }
-            if (lapText != null)
-                lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
+            if (lapText != null) {
+                if (currentLap == raceLap)
+                {
+                    lapText.text = "Final Lap";
+                }
+                else
+                {
+                    lapText.text = currentLap.ToString() + "/" + raceLap.ToString();
+                }
+            }
         }
     }
 }

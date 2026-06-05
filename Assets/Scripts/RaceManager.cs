@@ -20,8 +20,10 @@ public class RaceManager : MonoBehaviour
     private void Start()
     {
         // pastikan panel finish disembunyikan dulu di awal
-        if (finishPanel != null)
+        if (finishPanel != null) 
+        {
             finishPanel.SetActive(false);
+        }
     }
 
     private void Update()
@@ -37,7 +39,7 @@ public class RaceManager : MonoBehaviour
 
         // Cek apakah pemain sudah menyelesaikan semua lap.
         // (Player.cs menambah currentLap tiap melewati garis finish)
-        if (player != null && player.currentLap >= player.raceLap)
+        if (player != null && player.currentLap > player.raceLap)
         {
             FinishRace();
             return;
