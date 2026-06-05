@@ -12,13 +12,12 @@ namespace VR2026Recap.EditorTools
     {
         private const string OutputDirectory = "Builds/WebGL-Itch";
         private const string BuildsDirectory = "Builds";
-        private const string FallbackProductName = "VR2026Recap";
+        private const string FallbackProductName = "VR02_Kelompok1";
         private const string FallbackVersion = "dev";
 
         private static readonly string[] RecapScenePaths =
         {
-            "Assets/Scenes/VR_Pertemuan_1.unity",
-            "Assets/Scenes/VR_Pertemuan_2.unity",
+            "Assets/Scenes/Main_Scene.unity",
         };
 
         [MenuItem("Build/Itch.io/Configure WebGL Player Settings")]
