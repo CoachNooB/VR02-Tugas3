@@ -13,8 +13,8 @@ public class T5_GameController : MonoBehaviour
     [Header("Shoot")]
     [SerializeField] Button _shootButton;
     [SerializeField] TextMeshProUGUI _teksAmmo;
-    public int MaxAmmo;
-    public int CurrentAmmo;
+    public float MaxAmmo;
+    public float CurrentAmmo;
     public int Damage;
 
     [Header ("HP")]
@@ -75,8 +75,15 @@ public class T5_GameController : MonoBehaviour
     {
         if(isReloading)
         {
+            float reloadSpeed;
+            if(CurrentAmmo < 1)
+            {
+                reloadSpeed = 1 / MaxAmmo;
+            } else {
+                reloadSpeed = CurrentAmmo / MaxAmmo;
+            }
             _reloadBar.SetActive(true);
-            _reloadImage.fillAmount = _reloadImage.fillAmount + 0.5f * Time.deltaTime;
+            _reloadImage.fillAmount = _reloadImage.fillAmount + reloadSpeed * Time.deltaTime;
         }
         if(_reloadImage.fillAmount >= 1f)
         {
@@ -85,6 +92,7 @@ public class T5_GameController : MonoBehaviour
             _reloadImage.fillAmount = 0;
             isReloading = false;
             CurrentAmmo = MaxAmmo;
+            _teksAmmo.text = CurrentAmmo + "/" + MaxAmmo;
             _shootButton.interactable = true;
         }
     }
@@ -93,7 +101,11 @@ public class T5_GameController : MonoBehaviour
     {
         isDamaged = true;
         CurrentAmmo -= 1;
-        CurrentHP -= Damage;
+        if((CurrentHP - Damage) <= 0) {
+            CurrentHP = 0;
+        } else {
+            CurrentHP -= Damage;
+        }
 
         _textHP.text = CurrentHP + "/" + MaxHP;
         _teksAmmo.text = CurrentAmmo + "/" + MaxAmmo;
@@ -121,6 +133,8 @@ public class T5_GameController : MonoBehaviour
         } else {
             CurrentHP += HealValue;
         }
+        _shootButton.interactable = true;
+        _reloadButton.interactable = true;
 
         _textHP.text = CurrentHP + "/" + MaxHP;
     }

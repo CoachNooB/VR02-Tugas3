@@ -1925,7 +1925,7 @@ MonoBehaviour:
   _reloadImage: {fileID: 1560265039}
   _shootButton: {fileID: 1573580662}
   _teksAmmo: {fileID: 1852942546}
-  MaxAmmo: 3
+  MaxAmmo: 15
   CurrentAmmo: 3
   Damage: 20
   _textHP: {fileID: 167094380}
