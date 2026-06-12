@@ -83,7 +83,7 @@ public class T5_GameController : MonoBehaviour
                 reloadSpeed = CurrentAmmo / MaxAmmo;
             }
             _reloadBar.SetActive(true);
-            _reloadImage.fillAmount = _reloadImage.fillAmount + reloadSpeed * Time.deltaTime;
+            _reloadImage.fillAmount = _reloadImage.fillAmount + (reloadSpeed * 2) * Time.deltaTime;
         }
         if(_reloadImage.fillAmount >= 1f)
         {
