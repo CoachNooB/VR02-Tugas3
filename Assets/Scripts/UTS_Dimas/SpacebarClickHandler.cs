@@ -8,9 +8,9 @@ public class SpacebarClickHandler : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            // Cari tombol yang sedang di-hover oleh mouse
+            // Raycast dari tengah layar
             PointerEventData pointerData = new PointerEventData(EventSystem.current);
-            pointerData.position = new Vector2(Screen.width / 2, Screen.height / 2); // center of screen
+            pointerData.position = new Vector2(Screen.width / 2, Screen.height / 2);
             var results = new System.Collections.Generic.List<RaycastResult>();
             EventSystem.current.RaycastAll(pointerData, results);
 
