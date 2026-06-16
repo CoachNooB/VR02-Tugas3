@@ -1,32 +1,45 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Pergerakan (WASD)")]
+    [Header("Pergerakan WASD")]
     public float moveSpeed = 5f;
-    
+
     [Header("Kamera & Mouse Look")]
-    public Transform cameraTransform; 
+    public Camera playerCamera;
     public float mouseSensitivity = 2f;
-    public float upperLookLimit = -80f; 
-    public float lowerLookLimit = 80f;  
+    public float upperLookLimit = -80f;
+    public float lowerLookLimit = 80f;
 
     [Header("Sistem Interaksi")]
-    public float interactDistance = 3f; 
+    public float interactDistance = 3f;
+
+    [Header("Crosshair UI Optional")]
+    public Image crosshairImage;
 
     private CharacterController characterController;
-    private Vector3 moveDirection;
     private float rotationX = 0f;
 
     void Start()
     {
         characterController = GetComponent<CharacterController>();
 
-        // Mengunci dan menyembunyikan kursor kustom bawaan OS
+        if (playerCamera == null)
+        {
+            playerCamera = Camera.main;
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (crosshairImage != null)
+        {
+            crosshairImage.raycastTarget = false;
+        }
     }
 
     void Update()
@@ -36,65 +49,116 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            TryInteractFromCenter();
+            TryInteractFromCrosshair();
         }
     }
 
     void HandleRotation()
     {
-        if (cameraTransform == null) return;
+        if (playerCamera == null) return;
 
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        // Rotasi Vertikal (Kamera atas/bawah)
         rotationX -= mouseY;
-        rotationX = Mathf.Clamp(rotationX, upperLookLimit, lowerLookLimit); 
-        cameraTransform.localRotation = Quaternion.Euler(rotationX, 0f, 0f);
+        rotationX = Mathf.Clamp(rotationX, upperLookLimit, lowerLookLimit);
 
-        // Rotasi Horizontal (Player kanan/kiri)
+        playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0f, 0f);
         transform.Rotate(Vector3.up * mouseX);
     }
 
     void HandleMovement()
     {
-        float moveX = Input.GetAxis("Horizontal"); 
-        float moveZ = Input.GetAxis("Vertical");   
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical");
 
-        moveDirection = (transform.forward * moveZ) + (transform.right * moveX);
+        Vector3 moveDirection = transform.forward * moveZ + transform.right * moveX;
+
+        if (moveDirection.magnitude > 1f)
+        {
+            moveDirection.Normalize();
+        }
+
         characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
     }
 
-    void TryInteractFromCenter()
+    void TryInteractFromCrosshair()
     {
-        if (cameraTransform == null) return;
+        if (playerCamera == null) return;
 
-        // Memulai tembakan dari kamera lurus ke depan
-        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
-        RaycastHit hit;
+        Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
 
-        // Garis visual hijau di jendela Scene View
-        Debug.DrawRay(cameraTransform.position, cameraTransform.forward * interactDistance, Color.green, 2f);
-
-        if (Physics.Raycast(ray, out hit, interactDistance))
+        // First: try UI interaction, for World Space Canvas buttons
+        if (TryClickUI(screenCenter))
         {
-            // Validasi proteksi diri: Jika menabrak badan player sendiri, lewati objeknya
-            if (hit.collider.gameObject == this.gameObject || hit.collider.transform.IsChildOf(this.transform))
-            {
-                Ray secondaryRay = new Ray(hit.point + (cameraTransform.forward * 0.1f), cameraTransform.forward);
-                if (!Physics.Raycast(secondaryRay, out hit, interactDistance - hit.distance)) return;
-            }
+            return;
+        }
 
-            Debug.Log("Laser Mengenai: " + hit.collider.name);
+        // Second: optional fallback for normal 3D objects with colliders
+        TryClickWorldObject();
+    }
 
-            // Mencari komponen UI Button pada objek yang tertembak atau relasinya
-            Button button = hit.collider.GetComponentInChildren<Button>();
-            if (button == null) button = hit.collider.GetComponentInParent<Button>();
+    bool TryClickUI(Vector2 screenPosition)
+    {
+        if (EventSystem.current == null)
+        {
+            Debug.LogWarning("Tidak ada EventSystem di scene.");
+            return false;
+        }
+
+        PointerEventData pointerData = new PointerEventData(EventSystem.current)
+        {
+            position = screenPosition
+        };
+
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointerData, results);
+
+        foreach (RaycastResult result in results)
+        {
+            Button button = result.gameObject.GetComponentInParent<Button>();
 
             if (button != null && button.interactable)
             {
-                button.onClick.Invoke(); 
-                Debug.Log("Berhasil menekan tombol: " + button.name);
+                ExecuteEvents.Execute(
+                    button.gameObject,
+                    pointerData,
+                    ExecuteEvents.pointerClickHandler
+                );
+
+                Debug.Log("Berhasil menekan tombol UI: " + button.name);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void TryClickWorldObject()
+    {
+        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+
+        Debug.DrawRay(ray.origin, ray.direction * interactDistance, Color.green, 2f);
+
+        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance))
+        {
+            if (hit.collider.gameObject == gameObject || hit.collider.transform.IsChildOf(transform))
+            {
+                return;
+            }
+
+            Debug.Log("Laser mengenai object: " + hit.collider.name);
+
+            Button button = hit.collider.GetComponentInChildren<Button>();
+            if (button == null)
+            {
+                button = hit.collider.GetComponentInParent<Button>();
+            }
+
+            if (button != null && button.interactable)
+            {
+                button.onClick.Invoke();
+                Debug.Log("Berhasil menekan tombol dari collider: " + button.name);
             }
         }
     }
