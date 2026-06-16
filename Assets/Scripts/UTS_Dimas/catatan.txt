@@ -1,0 +1,15 @@
+Struktur Folder
+
+Assets/Editor/ → EvacuationSceneBuilder.cs
+
+Assets/Script/UTS_Dimas/ → semua script runtime:
+
+EvacuationManager.cs
+
+TimerManager.cs
+
+DoorController.cs
+
+SimpleFirstPersonController.cs
+
+WarningPopup.cs
