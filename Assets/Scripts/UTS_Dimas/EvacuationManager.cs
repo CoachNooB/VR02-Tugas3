@@ -5,7 +5,7 @@ using System.Collections;
 
 public class EvacuationManager : MonoBehaviour
 {
-    // UI References (diisi otomatis oleh builder)
+    // UI References
     public TextMeshProUGUI txtObjectiveID;
     public TextMeshProUGUI txtObjectiveAlarm;
     public TextMeshProUGUI txtObjectiveDoor;
@@ -13,15 +13,24 @@ public class EvacuationManager : MonoBehaviour
     public TextMeshProUGUI txtTimer;
     public TextMeshProUGUI txtFeedback;
     public CanvasGroup warningCanvasGroup;
+    public TextMeshProUGUI warningPopupText;
+    public Image flashImage;
     public Image mapIDCard;
     public Image mapAlarm;
     public Image mapDoor;
     public Image mapExit;
 
+    // Station references for visual feedback
+    public GameObject stationIDCard;
+    public GameObject stationAlarm;
+    public GameObject stationDoor;
+    public GameObject stationExit;
+
     [Header("Color States")]
     public Color colorTodo = Color.gray;
     public Color colorActive = Color.yellow;
     public Color colorDone = Color.green;
+    public Color colorError = Color.red;
 
     // State
     private bool hasIDCard = false;
@@ -34,9 +43,37 @@ public class EvacuationManager : MonoBehaviour
 
     void Start()
     {
+        // Fallback: cari UI jika null
+        if (txtObjectiveID == null) txtObjectiveID = GameObject.Find("Txt_ID")?.GetComponent<TextMeshProUGUI>();
+        if (txtObjectiveAlarm == null) txtObjectiveAlarm = GameObject.Find("Txt_Alarm")?.GetComponent<TextMeshProUGUI>();
+        if (txtObjectiveDoor == null) txtObjectiveDoor = GameObject.Find("Txt_Door")?.GetComponent<TextMeshProUGUI>();
+        if (txtObjectiveExit == null) txtObjectiveExit = GameObject.Find("Txt_Exit")?.GetComponent<TextMeshProUGUI>();
+        if (txtTimer == null) txtTimer = GameObject.Find("TimerText")?.GetComponent<TextMeshProUGUI>();
+        if (txtFeedback == null) txtFeedback = GameObject.Find("StatusText")?.GetComponent<TextMeshProUGUI>();
+        if (warningCanvasGroup == null)
+        {
+            GameObject popup = GameObject.Find("WarningPopupPanel");
+            if (popup != null) warningCanvasGroup = popup.GetComponent<CanvasGroup>();
+        }
+        if (warningPopupText == null)
+        {
+            GameObject popupText = GameObject.Find("PopupText");
+            if (popupText != null) warningPopupText = popupText.GetComponent<TextMeshProUGUI>();
+        }
+        if (flashImage == null)
+        {
+            GameObject flash = GameObject.Find("WarningFlash");
+            if (flash != null) flashImage = flash.GetComponent<Image>();
+        }
+        if (mapIDCard == null) mapIDCard = GameObject.Find("Light_ID")?.GetComponent<Image>();
+        if (mapAlarm == null) mapAlarm = GameObject.Find("Light_Alarm")?.GetComponent<Image>();
+        if (mapDoor == null) mapDoor = GameObject.Find("Light_Door")?.GetComponent<Image>();
+        if (mapExit == null) mapExit = GameObject.Find("Light_Exit")?.GetComponent<Image>();
+
         UpdateChecklistUI();
         UpdateMapUI();
         if (warningCanvasGroup != null) warningCanvasGroup.alpha = 0f;
+
         TimerManager timerMgr = FindObjectOfType<TimerManager>();
         if (timerMgr != null) timerMgr.OnTimerExpiredEvent += OnTimerExpired;
     }
@@ -59,7 +96,7 @@ public class EvacuationManager : MonoBehaviour
         {
             timeRemaining = 0;
             isTimerRunning = false;
-            TriggerFeedback("⛔ TIME'S UP! Evacuation failed.", true);
+            ShowWarningPopup("⛔ TIME'S UP! Evacuation failed.", true);
         }
     }
 
@@ -67,7 +104,7 @@ public class EvacuationManager : MonoBehaviour
     {
         if (isEvacuationComplete) return;
         isTimerRunning = false;
-        TriggerFeedback("⛔ TIME'S UP! Evacuation failed.", true);
+        ShowWarningPopup("⛔ TIME'S UP! Evacuation failed.", true);
     }
 
     // ========== BUTTON METHODS ==========
@@ -78,104 +115,149 @@ public class EvacuationManager : MonoBehaviour
         if (!hasIDCard)
         {
             hasIDCard = true;
-            TriggerFeedback("✅ ID Card Collected!", false);
+            ShowSuccessFeedback("✅ ID Card Collected!");
             UpdateChecklistUI();
             UpdateMapUI();
+            ChangeStationColor(stationIDCard, colorDone);
         }
         else
-            TriggerFeedback("ID Card already taken.", false);
+        {
+            ShowFeedback("⚠️ ID Card already taken.", false);
+        }
     }
 
     public void InteractAlarmStation()
     {
         Debug.Log("[EvacuationManager] Alarm button clicked!");
         if (isEvacuationComplete || timeRemaining <= 0) return;
+
         if (!hasIDCard)
         {
-            TriggerFeedback("❌ Take ID Card First!", true);
+            ShowWarningPopup("❌ Take ID Card First!", true);
             return;
         }
+
         if (!isAlarmActivated)
         {
             isAlarmActivated = true;
-            TriggerFeedback("🚨 Alarm Activated!", false);
+            ShowSuccessFeedback("🚨 Alarm Activated!");
             UpdateChecklistUI();
             UpdateMapUI();
+            ChangeStationColor(stationAlarm, colorDone);
         }
         else
-            TriggerFeedback("Alarm already active.", false);
+        {
+            ShowFeedback("⚠️ Alarm already active.", false);
+        }
     }
 
     public void InteractEmergencyDoorStation()
     {
         Debug.Log("[EvacuationManager] Door button clicked!");
         if (isEvacuationComplete || timeRemaining <= 0) return;
+
         if (!hasIDCard)
         {
-            TriggerFeedback("❌ Take ID Card First!", true);
+            ShowWarningPopup("❌ Take ID Card First!", true);
             return;
         }
+
         if (!isAlarmActivated)
         {
-            TriggerFeedback("❌ Activate Alarm First!", true);
+            ShowWarningPopup("❌ Activate Alarm First!", true);
             return;
         }
+
         if (!isDoorOpened)
         {
             isDoorOpened = true;
-            TriggerFeedback("🚪 Emergency Door Opened!", false);
+            ShowSuccessFeedback("🚪 Emergency Door Opened!");
             UpdateChecklistUI();
             UpdateMapUI();
+            ChangeStationColor(stationDoor, colorDone);
             DoorController door = FindObjectOfType<DoorController>();
             if (door != null) door.OpenDoor();
         }
         else
-            TriggerFeedback("Door already open.", false);
+        {
+            ShowFeedback("⚠️ Door already open.", false);
+        }
     }
 
     public void InteractExitStation()
     {
         Debug.Log("[EvacuationManager] Exit button clicked!");
         if (isEvacuationComplete || timeRemaining <= 0) return;
+
         if (!isDoorOpened)
         {
-            TriggerFeedback("❌ Emergency Door is Locked!", true);
+            ShowWarningPopup("❌ Emergency Door is Locked!", true);
             return;
         }
+
         isEvacuationComplete = true;
-        TriggerFeedback("🏆 EVACUATION COMPLETE! You are safe.", false);
+        ShowSuccessFeedback("🏆 EVACUATION COMPLETE! You are safe.");
         UpdateChecklistUI();
         UpdateMapUI();
+        ChangeStationColor(stationExit, colorDone);
+
         TimerManager timerMgr = FindObjectOfType<TimerManager>();
         if (timerMgr != null) timerMgr.StopTimer();
     }
 
+    // ========== VISUAL EFFECT ==========
+    private void ChangeStationColor(GameObject station, Color color)
+    {
+        if (station == null) return;
+        StationClickEffect effect = station.GetComponent<StationClickEffect>();
+        if (effect != null)
+        {
+            effect.SetColor(color);
+        }
+        else
+        {
+            Renderer rend = station.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                Material mat = new Material(rend.material);
+                mat.color = color;
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", color * 0.5f);
+                rend.material = mat;
+            }
+        }
+    }
+
     // ========== UI UPDATE ==========
-    private void UpdateChecklistUI()
+    public void UpdateChecklistUI()
     {
         if (txtObjectiveID != null)
         {
             txtObjectiveID.text = (hasIDCard ? "☑" : "☐") + " 1. Take ID Card";
             txtObjectiveID.color = hasIDCard ? colorDone : colorActive;
+            txtObjectiveID.fontStyle = hasIDCard ? FontStyles.Strikethrough : FontStyles.Normal;
         }
         if (txtObjectiveAlarm != null)
         {
             txtObjectiveAlarm.text = (isAlarmActivated ? "☑" : "☐") + " 2. Activate Alarm";
             txtObjectiveAlarm.color = isAlarmActivated ? colorDone : (!hasIDCard ? colorTodo : colorActive);
+            txtObjectiveAlarm.fontStyle = isAlarmActivated ? FontStyles.Strikethrough : FontStyles.Normal;
         }
         if (txtObjectiveDoor != null)
         {
             txtObjectiveDoor.text = (isDoorOpened ? "☑" : "☐") + " 3. Open Emergency Door";
             txtObjectiveDoor.color = isDoorOpened ? colorDone : (!isAlarmActivated ? colorTodo : colorActive);
+            txtObjectiveDoor.fontStyle = isDoorOpened ? FontStyles.Strikethrough : FontStyles.Normal;
         }
         if (txtObjectiveExit != null)
         {
             txtObjectiveExit.text = (isEvacuationComplete ? "☑" : "☐") + " 4. Go To Exit";
             txtObjectiveExit.color = isEvacuationComplete ? colorDone : (!isDoorOpened ? colorTodo : colorActive);
+            txtObjectiveExit.fontStyle = isEvacuationComplete ? FontStyles.Strikethrough : FontStyles.Normal;
         }
     }
 
-    private void UpdateMapUI()
+    public void UpdateMapUI()
     {
         if (mapIDCard != null) mapIDCard.color = hasIDCard ? colorDone : colorActive;
         if (mapAlarm != null) mapAlarm.color = isAlarmActivated ? colorDone : (hasIDCard ? colorActive : colorTodo);
@@ -183,10 +265,26 @@ public class EvacuationManager : MonoBehaviour
         if (mapExit != null) mapExit.color = isEvacuationComplete ? colorDone : (isDoorOpened ? colorActive : colorTodo);
     }
 
-    private void TriggerFeedback(string message, bool isWarning)
+    // ========== FEEDBACK METHODS ==========
+    private void ShowFeedback(string message, bool isWarning)
     {
         if (feedbackCoroutine != null) StopCoroutine(feedbackCoroutine);
         feedbackCoroutine = StartCoroutine(ShowFeedbackRoutine(message, isWarning));
+    }
+
+    private void ShowSuccessFeedback(string message)
+    {
+        ShowFeedback(message, false);
+        if (flashImage != null)
+            StartCoroutine(FlashColor(Color.green));
+    }
+
+    private void ShowWarningPopup(string message, bool isError)
+    {
+        if (feedbackCoroutine != null) StopCoroutine(feedbackCoroutine);
+        feedbackCoroutine = StartCoroutine(ShowPopupRoutine(message, isError));
+        if (isError && flashImage != null)
+            StartCoroutine(FlashColor(Color.red));
     }
 
     private IEnumerator ShowFeedbackRoutine(string message, bool isWarning)
@@ -194,25 +292,81 @@ public class EvacuationManager : MonoBehaviour
         if (txtFeedback != null)
         {
             txtFeedback.text = message;
-            txtFeedback.color = isWarning ? Color.red : Color.green;
+            txtFeedback.color = isWarning ? colorError : colorDone;
         }
-        if (warningCanvasGroup == null) yield break;
-        float duration = 0.2f, elapsed = 0f;
+        yield return new WaitForSeconds(3f);
+        if (txtFeedback != null && !isEvacuationComplete)
+        {
+            txtFeedback.text = GetCurrentObjectiveHint();
+            txtFeedback.color = Color.white;
+        }
+    }
+
+    private IEnumerator ShowPopupRoutine(string message, bool isError)
+    {
+        if (warningCanvasGroup != null && warningPopupText != null)
+        {
+            warningPopupText.text = message;
+            warningPopupText.color = isError ? colorError : colorDone;
+
+            float elapsed = 0f;
+            while (elapsed < 0.3f)
+            {
+                warningCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.3f);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            warningCanvasGroup.alpha = 1f;
+
+            yield return new WaitForSeconds(2.5f);
+
+            elapsed = 0f;
+            while (elapsed < 0.3f)
+            {
+                warningCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.3f);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            warningCanvasGroup.alpha = 0f;
+        }
+    }
+
+    private IEnumerator FlashColor(Color color)
+    {
+        if (flashImage == null) yield break;
+
+        float duration = 0.3f;
+        float elapsed = 0f;
         while (elapsed < duration)
         {
-            warningCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / duration);
+            float alpha = Mathf.Lerp(0f, 0.5f, elapsed / duration);
+            flashImage.color = new Color(color.r, color.g, color.b, alpha);
             elapsed += Time.deltaTime;
             yield return null;
         }
-        warningCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(2f);
         elapsed = 0f;
         while (elapsed < duration)
         {
-            warningCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / duration);
+            float alpha = Mathf.Lerp(0.5f, 0f, elapsed / duration);
+            flashImage.color = new Color(color.r, color.g, color.b, alpha);
             elapsed += Time.deltaTime;
             yield return null;
         }
-        warningCanvasGroup.alpha = 0f;
+        flashImage.color = new Color(1, 0, 0, 0);
+    }
+
+    private string GetCurrentObjectiveHint()
+    {
+        if (!hasIDCard) return "🔵 Go to the BLUE station and click 'Take ID Card'!";
+        if (!isAlarmActivated) return "🔴 Go to the RED station and click 'Activate Alarm'!";
+        if (!isDoorOpened) return "🟢 Go to the GREEN station and click 'Open Door'!";
+        if (!isEvacuationComplete) return "🟡 Go to the YELLOW station and click 'Exit Building'!";
+        return "🏆 Evacuation Complete!";
+    }
+
+    private void OnDestroy()
+    {
+        TimerManager timerMgr = FindObjectOfType<TimerManager>();
+        if (timerMgr != null) timerMgr.OnTimerExpiredEvent -= OnTimerExpired;
     }
 }

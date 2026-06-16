@@ -36,14 +36,21 @@ public class TimerManager : MonoBehaviour
 
     private void UpdateTimerDisplay()
     {
+        if (timerText == null) return;
         int minutes = Mathf.FloorToInt(currentTime / 60);
         int seconds = Mathf.FloorToInt(currentTime % 60);
-        if (timerText != null)
-            timerText.text = $"{minutes:00}:{seconds:00}";
+        timerText.text = $"{minutes:00}:{seconds:00}";
     }
 
     public void StopTimer()
     {
         isRunning = false;
+    }
+
+    public void ResetTimer()
+    {
+        currentTime = maxTime;
+        isRunning = true;
+        UpdateTimerDisplay();
     }
 }

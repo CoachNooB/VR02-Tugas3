@@ -9,10 +9,10 @@ public class ButtonClickEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
     public float duration = 0.1f;
     public Color hoverColor = new Color(0.4f, 0.8f, 1f);
     public Color pressColor = new Color(0.1f, 0.4f, 0.7f);
-    public Color normalColor = new Color(0.2f, 0.6f, 0.9f);
 
     private Image image;
     private Vector3 originalScale;
+    private Color originalColor;
     private bool isHovering = false;
     private bool isPressed = false;
 
@@ -20,7 +20,7 @@ public class ButtonClickEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
     {
         image = GetComponent<Image>();
         originalScale = transform.localScale;
-        if (image != null) normalColor = image.color;
+        if (image != null) originalColor = image.color;
     }
 
     void Update()
@@ -34,7 +34,7 @@ public class ButtonClickEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
         if (image != null)
         {
-            Color targetColor = normalColor;
+            Color targetColor = originalColor;
             if (isPressed)
                 targetColor = pressColor;
             else if (isHovering)
