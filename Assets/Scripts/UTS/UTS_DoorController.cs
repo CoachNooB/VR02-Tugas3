@@ -5,6 +5,7 @@ public class UTS_DoorController : MonoBehaviour
 {
     [Header ("Door Button")]
     [SerializeField] Button _doorButton;
+    private Image buttonImage;
     [Header ("Left Door")]
     [SerializeField] Transform _leftDoor;
     private Vector3 leftDoorDefaultPosition;
@@ -14,11 +15,13 @@ public class UTS_DoorController : MonoBehaviour
     private Vector3 rightDoorDefaultPosition;
     private Vector3 rightDoorTargetPosition;
 
-    private bool isOpen;
+    [Header ("GameController")]
+    [SerializeField] UTS_GameController _gameController;
+    public string Door;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        isOpen = false;
+        buttonImage = GetComponent<Image>();
         _doorButton.onClick.AddListener(OnDoorButtonClick);
         leftDoorDefaultPosition = _leftDoor.position;
         rightDoorDefaultPosition = _rightDoor.position;
@@ -44,7 +47,8 @@ public class UTS_DoorController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(isOpen)
+        ChangeButtonColor();
+        if(_gameController.GetDoorStatus(Door))
         {
             AnimateDoorOpen();
         } else
@@ -55,7 +59,7 @@ public class UTS_DoorController : MonoBehaviour
 
     public void OnDoorButtonClick()
     {
-        isOpen = !isOpen;
+        _gameController.ToggleIsOpen(Door);
     }
 
     public void AnimateDoorOpen()
@@ -68,5 +72,10 @@ public class UTS_DoorController : MonoBehaviour
     {
         _leftDoor.position = Vector3.MoveTowards(_leftDoor.position, leftDoorDefaultPosition, 5f * Time.deltaTime);
         _rightDoor.position = Vector3.MoveTowards(_rightDoor.position, rightDoorDefaultPosition, 5f * Time.deltaTime);
+    }
+
+    public void ChangeButtonColor()
+    {
+        buttonImage.color = _gameController.GetDoorColor(Door);
     }
 }
