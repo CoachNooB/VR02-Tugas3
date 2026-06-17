@@ -47,7 +47,7 @@ public class PlayerController : MonoBehaviour
         HandleRotation();
         HandleMovement();
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.E))
         {
             TryInteractFromCrosshair();
         }
@@ -88,13 +88,13 @@ public class PlayerController : MonoBehaviour
 
         Vector2 screenCenter = new Vector2(Screen.width / 2f, Screen.height / 2f);
 
-        // First: try UI interaction, for World Space Canvas buttons
+        // First: try UI interaction, but now with distance limit
         if (TryClickUI(screenCenter))
         {
             return;
         }
 
-        // Second: optional fallback for normal 3D objects with colliders
+        // Second: fallback for normal 3D objects with colliders
         TryClickWorldObject();
     }
 
@@ -118,17 +118,30 @@ public class PlayerController : MonoBehaviour
         {
             Button button = result.gameObject.GetComponentInParent<Button>();
 
-            if (button != null && button.interactable)
+            if (button == null || !button.interactable)
             {
-                ExecuteEvents.Execute(
-                    button.gameObject,
-                    pointerData,
-                    ExecuteEvents.pointerClickHandler
-                );
-
-                Debug.Log("Berhasil menekan tombol UI: " + button.name);
-                return true;
+                continue;
             }
+
+            float distanceToButton = Vector3.Distance(
+                playerCamera.transform.position,
+                button.transform.position
+            );
+
+            if (distanceToButton > interactDistance)
+            {
+                Debug.Log("Tombol terlalu jauh: " + button.name + " | Distance: " + distanceToButton);
+                continue;
+            }
+
+            ExecuteEvents.Execute(
+                button.gameObject,
+                pointerData,
+                ExecuteEvents.pointerClickHandler
+            );
+
+            Debug.Log("Berhasil menekan tombol UI: " + button.name);
+            return true;
         }
 
         return false;
@@ -150,6 +163,7 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Laser mengenai object: " + hit.collider.name);
 
             Button button = hit.collider.GetComponentInChildren<Button>();
+
             if (button == null)
             {
                 button = hit.collider.GetComponentInParent<Button>();
@@ -157,6 +171,17 @@ public class PlayerController : MonoBehaviour
 
             if (button != null && button.interactable)
             {
+                float distanceToButton = Vector3.Distance(
+                    playerCamera.transform.position,
+                    button.transform.position
+                );
+
+                if (distanceToButton > interactDistance)
+                {
+                    Debug.Log("Button collider terlalu jauh: " + button.name);
+                    return;
+                }
+
                 button.onClick.Invoke();
                 Debug.Log("Berhasil menekan tombol dari collider: " + button.name);
             }
