@@ -4,6 +4,7 @@ using System;
 
 public class TimerManager : MonoBehaviour
 {
+    [SerializeField] UTS_GameController _gameController;
     public TextMeshProUGUI timerText;
     public float maxTime = 120f;
     private float currentTime;
@@ -25,7 +26,8 @@ public class TimerManager : MonoBehaviour
         {
             currentTime = 0f;
             isRunning = false;
-            OnTimerExpiredEvent?.Invoke();
+            StartCoroutine(_gameController.SetGameOver(false));
+            _gameController.OnTimerExpired();
             UpdateTimerDisplay();
         }
         else
