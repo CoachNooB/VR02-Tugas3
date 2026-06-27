@@ -24,9 +24,6 @@ public class PlayerSystemController : MonoBehaviour
     public int maxAmmo = 10;
     private int _currentAmmo;
 
-    [Header("Effects")]
-    public ParticleSystem hitEffectPrefab; // optional
-
     private InteractableObject _currentHoveredObject;
     private bool _hasPistol = false;
 
@@ -53,7 +50,7 @@ public class PlayerSystemController : MonoBehaviour
         Vector3 origin = cameraTransform.position;
         Vector3 direction = cameraTransform.forward;
 
-        // Raycast Highlight & Interaksi
+        // ===== RAYCAST HIGHLIGHT & INTERAKSI =====
         if (Physics.Raycast(origin, direction, out RaycastHit hit, rayDistance, interactableLayerMask))
         {
             InteractableObject obj = hit.collider.GetComponent<InteractableObject>();
@@ -103,7 +100,7 @@ public class PlayerSystemController : MonoBehaviour
             }
         }
 
-        // Tembakan
+        // ===== TEMBAKAN =====
         if (Input.GetMouseButtonDown(0) && _hasPistol && _currentAmmo > 0)
         {
             ShootAndPushZombie(origin, direction);
@@ -128,21 +125,12 @@ public class PlayerSystemController : MonoBehaviour
                 rb.AddForceAtPosition(direction * bulletImpactForce, hit.point, ForceMode.Impulse);
                 statusText.text = "Tembakan kena! Zombie terpental!";
 
-                // Efek sederhana
-                if (hitEffectPrefab != null)
-                {
-                    ParticleSystem ps = Instantiate(hitEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal));
-                    ps.Play();
-                    Destroy(ps.gameObject, 2f);
-                }
-                else
-                {
-                    GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    spark.transform.position = hit.point;
-                    spark.transform.localScale = Vector3.one * 0.2f;
-                    spark.GetComponent<Renderer>().material.color = Color.red;
-                    Destroy(spark, 1f);
-                }
+                // Efek percikan sederhana
+                GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                spark.transform.position = hit.point;
+                spark.transform.localScale = Vector3.one * 0.2f;
+                spark.GetComponent<Renderer>().material.color = Color.red;
+                Destroy(spark, 1f);
             }
         }
         else
@@ -154,6 +142,6 @@ public class PlayerSystemController : MonoBehaviour
     private void UpdateAmmoUI()
     {
         if (ammoText != null)
-            ammoText.text = "Ammo: " + _currentAmmo + " / " + maxAmmo;
+            ammoText.text = _currentAmmo + " / " + maxAmmo;
     }
 }

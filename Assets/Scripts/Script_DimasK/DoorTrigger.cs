@@ -9,6 +9,7 @@ public class DoorTrigger : MonoBehaviour
         bool isPlayer = other.CompareTag("Player") || other.transform.root.CompareTag("Player");
         if (isPlayer)
         {
+            Debug.Log($"Player masuk trigger: {gameObject.name}");
             if (door != null)
                 door.OpenDoor();
         }
