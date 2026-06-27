@@ -2,19 +2,22 @@ using UnityEngine;
 
 public class ZombieAI : MonoBehaviour
 {
+    [Header("Movement")]
     public float walkSpeed = 2f;
     public float detectionRange = 15f;
-    public float attackRange = 1.5f;
+    public float attackRange = 1.8f;
     public int damage = 10;
-    public float deathDelay = 3f; // waktu sebelum zombie hilang setelah mati
+    public float attackCooldown = 1.5f;
 
     private Transform player;
     private Rigidbody rb;
     private Animator animator;
     private bool isDead = false;
-    private float deathTimer = 0f;
+    private bool isAttacking = false;
+    private float attackTimer = 0f;
+    private PlayerSystemController playerHealth;
 
-    // Cek parameter yang tersedia di Animator
+    // Parameter animator
     private bool hasWalkingParam = false;
     private bool hasAttackingParam = false;
 
@@ -24,7 +27,15 @@ public class ZombieAI : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
 
-        // Cek parameter yang tersedia di Animator
+        // Cari PlayerSystemController di player (atau di anaknya)
+        if (player != null)
+        {
+            playerHealth = player.GetComponentInChildren<PlayerSystemController>();
+            if (playerHealth == null)
+                playerHealth = player.GetComponent<PlayerSystemController>();
+        }
+
+        // Cek parameter animator
         if (animator != null)
         {
             foreach (var param in animator.parameters)
@@ -33,7 +44,6 @@ public class ZombieAI : MonoBehaviour
                 if (param.name == "isAttacking") hasAttackingParam = true;
             }
             
-            // Set parameter awal hanya jika ada
             if (hasWalkingParam) animator.SetBool("isWalking", false);
             if (hasAttackingParam) animator.SetBool("isAttacking", false);
         }
@@ -46,15 +56,16 @@ public class ZombieAI : MonoBehaviour
 
     void Update()
     {
-        // Jika zombie mati, jalankan timer untuk menghilang
-        if (isDead)
+        // Cooldown serangan
+        if (isAttacking)
         {
-            deathTimer += Time.deltaTime;
-            if (deathTimer >= deathDelay)
+            attackTimer -= Time.deltaTime;
+            if (attackTimer <= 0)
             {
-                Destroy(gameObject);
+                isAttacking = false;
+                if (animator != null && hasAttackingParam)
+                    animator.SetBool("isAttacking", false);
             }
-            return;
         }
     }
 
@@ -65,30 +76,46 @@ public class ZombieAI : MonoBehaviour
         Vector3 direction = player.position - transform.position;
         float distance = direction.magnitude;
 
+        // Jika terlalu jauh, diam
         if (distance > detectionRange)
         {
-            // Diam
             if (animator != null && hasWalkingParam) 
                 animator.SetBool("isWalking", false);
             return;
         }
 
-        if (distance < attackRange)
+        // Jika jarak dekat dan tidak sedang menyerang, mulai serang
+        if (distance < attackRange && !isAttacking && !isDead)
         {
-            // Serang (berhenti)
+            isAttacking = true;
+            attackTimer = attackCooldown;
             if (animator != null)
             {
                 if (hasWalkingParam) animator.SetBool("isWalking", false);
                 if (hasAttackingParam) animator.SetBool("isAttacking", true);
             }
+
+            // Serang player! Kurangi health
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(damage);
+                Debug.Log("Zombie menyerang! Damage: " + damage);
+            }
             return;
         }
 
-        // Bergerak
+        // Jika sedang menyerang, jangan bergerak
+        if (isAttacking)
+        {
+            if (animator != null && hasWalkingParam) animator.SetBool("isWalking", false);
+            return;
+        }
+
+        // ===== BERJALAN MENDEKATI PLAYER =====
         Vector3 move = direction.normalized * walkSpeed * Time.fixedDeltaTime;
         rb.MovePosition(rb.position + move);
 
-        // Rotasi
+        // Rotasi menghadap player
         Vector3 lookDir = direction.normalized;
         lookDir.y = 0;
         if (lookDir != Vector3.zero)
@@ -97,6 +124,7 @@ public class ZombieAI : MonoBehaviour
             rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, Time.fixedDeltaTime * 5f));
         }
 
+        // Aktifkan animasi berjalan
         if (animator != null)
         {
             if (hasWalkingParam) animator.SetBool("isWalking", true);
@@ -106,12 +134,9 @@ public class ZombieAI : MonoBehaviour
 
     public void TakeDamage(float force, Vector3 hitPoint, Vector3 direction)
     {
-        if (isDead) return; // Jangan terima damage jika sudah mati
+        if (isDead) return;
 
-        // Beri dorongan
         rb.AddForceAtPosition(direction * force, hitPoint, ForceMode.Impulse);
-        
-        // Matikan zombie
         Die();
     }
 
@@ -119,23 +144,11 @@ public class ZombieAI : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        
-        // Matikan animasi
         if (animator != null)
         {
             if (hasWalkingParam) animator.SetBool("isWalking", false);
             if (hasAttackingParam) animator.SetBool("isAttacking", false);
         }
-        
-        // Nonaktifkan collider agar tidak menghalangi
-        Collider col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
-        
-        // Biarkan rigidbody tetap aktif agar efek dorongan terlihat
-        // tapi kita tidak ingin zombie bergerak sendiri lagi
-        // (sudah diatasi dengan isDead di FixedUpdate)
-        
-        // Mulai timer untuk menghilang (di Update)
-        deathTimer = 0f;
+        Destroy(gameObject, 2f);
     }
 }

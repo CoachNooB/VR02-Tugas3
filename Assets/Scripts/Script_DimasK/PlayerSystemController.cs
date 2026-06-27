@@ -83,39 +83,76 @@ public class PlayerSystemController : MonoBehaviour
 
                 if (Input.GetKeyDown(KeyCode.E))
                 {
-                    if (_currentHoveredObject.Interact())
+                    bool success = false;
+                    string message = "";
+
+                    // Cek jenis objek
+                    if (obj.IsAmmoPickup)
                     {
-                        if (_currentHoveredObject.IsAmmoPickup)
+                        if (_currentAmmo >= maxAmmo)
                         {
-                            int ammoGain = _currentHoveredObject.AmmoAmount;
-                            _currentAmmo = Mathf.Min(_currentAmmo + ammoGain, maxAmmo);
-                            UpdateAmmoUI();
-                            statusText.text = "+" + ammoGain + " peluru!";
-                        }
-                        else if (_currentHoveredObject.IsHealthPickup)
-                        {
-                            int healthGain = _currentHoveredObject.HealthAmount;
-                            _currentHealth = Mathf.Min(_currentHealth + healthGain, maxHealth);
-                            UpdateHealthUI();
-                            statusText.text = "+" + healthGain + " HP!";
-                        }
-                        else if (_currentHoveredObject == weaponDrawerScript)
-                        {
-                            _hasPistol = true;
-                            _currentAmmo = maxAmmo;
-                            UpdateAmmoUI();
-                            statusText.text = "Pistol diperoleh! (Ammo: " + _currentAmmo + ")";
+                            message = "Ammo masih penuh! (" + _currentAmmo + "/" + maxAmmo + ")";
+                            success = false;
                         }
                         else
                         {
-                            statusText.text = "Berinteraksi dengan " + _currentHoveredObject.name + "!";
+                            int ammoGain = obj.AmmoAmount;
+                            _currentAmmo = Mathf.Min(_currentAmmo + ammoGain, maxAmmo);
+                            UpdateAmmoUI();
+                            message = "+" + ammoGain + " peluru! (" + _currentAmmo + "/" + maxAmmo + ")";
+                            success = true;
                         }
-                        promptText.text = "";
+                    }
+                    else if (obj.IsHealthPickup)
+                    {
+                        if (_currentHealth >= maxHealth)
+                        {
+                            message = "HP masih penuh! (" + _currentHealth + "/" + maxHealth + ")";
+                            success = false;
+                        }
+                        else
+                        {
+                            int healthGain = obj.HealthAmount;
+                            _currentHealth = Mathf.Min(_currentHealth + healthGain, maxHealth);
+                            UpdateHealthUI();
+                            message = "+" + healthGain + " HP! (" + _currentHealth + "/" + maxHealth + ")";
+                            success = true;
+                        }
+                    }
+                    else if (obj == weaponDrawerScript)
+                    {
+                        if (_hasPistol)
+                        {
+                            message = "Kamu sudah punya pistol!";
+                            success = false;
+                        }
+                        else
+                        {
+                            success = obj.Interact(); // Ini akan mengaktifkan pistol
+                            if (success)
+                            {
+                                _hasPistol = true;
+                                _currentAmmo = maxAmmo;
+                                UpdateAmmoUI();
+                                message = "Pistol diperoleh! (Ammo: " + _currentAmmo + ")";
+                            }
+                            else
+                                message = "Gagal mengambil pistol!";
+                        }
                     }
                     else
                     {
-                        statusText.text = "Gagal! (mungkin terkunci)";
+                        // Objek biasa
+                        success = obj.Interact();
+                        if (success)
+                            message = "Berinteraksi dengan " + obj.name + "!";
+                        else
+                            message = "Gagal berinteraksi!";
                     }
+
+                    // Tampilkan pesan
+                    statusText.text = message;
+                    if (success) promptText.text = "";
                 }
             }
         }
@@ -154,21 +191,17 @@ public class PlayerSystemController : MonoBehaviour
 
             if (rb != null && !rb.isKinematic)
             {
-                // Jika ada komponen ZombieAI, panggil TakeDamage agar zombie mati
                 if (zombieAI != null)
                 {
-                    // Panggil TakeDamage dengan gaya dorong dan arah
                     zombieAI.TakeDamage(bulletImpactForce, hit.point, direction);
                     statusText.text = "Zombie terkena tembakan! Mati!";
                 }
                 else
                 {
-                    // Jika hanya Rigidbody biasa (fallback)
                     rb.AddForceAtPosition(direction * bulletImpactForce, hit.point, ForceMode.Impulse);
                     statusText.text = "Tembakan kena!";
                 }
 
-                // Efek percikan sederhana
                 GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 spark.transform.position = hit.point;
                 spark.transform.localScale = Vector3.one * 0.2f;
