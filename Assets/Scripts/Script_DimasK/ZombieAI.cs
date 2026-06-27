@@ -6,25 +6,56 @@ public class ZombieAI : MonoBehaviour
     public float detectionRange = 15f;
     public float attackRange = 1.5f;
     public int damage = 10;
+    public float deathDelay = 3f; // waktu sebelum zombie hilang setelah mati
 
     private Transform player;
     private Rigidbody rb;
     private Animator animator;
     private bool isDead = false;
+    private float deathTimer = 0f;
+
+    // Cek parameter yang tersedia di Animator
+    private bool hasWalkingParam = false;
+    private bool hasAttackingParam = false;
 
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         rb = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>(); // Ambil Animator dari model
+        animator = GetComponent<Animator>();
+
+        // Cek parameter yang tersedia di Animator
+        if (animator != null)
+        {
+            foreach (var param in animator.parameters)
+            {
+                if (param.name == "isWalking") hasWalkingParam = true;
+                if (param.name == "isAttacking") hasAttackingParam = true;
+            }
+            
+            // Set parameter awal hanya jika ada
+            if (hasWalkingParam) animator.SetBool("isWalking", false);
+            if (hasAttackingParam) animator.SetBool("isAttacking", false);
+        }
+
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
         rb.mass = 80f;
         rb.useGravity = true;
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    }
 
-        // Set parameter awal
-        if (animator != null)
-            animator.SetBool("isWalking", false);
+    void Update()
+    {
+        // Jika zombie mati, jalankan timer untuk menghilang
+        if (isDead)
+        {
+            deathTimer += Time.deltaTime;
+            if (deathTimer >= deathDelay)
+            {
+                Destroy(gameObject);
+            }
+            return;
+        }
     }
 
     void FixedUpdate()
@@ -37,7 +68,8 @@ public class ZombieAI : MonoBehaviour
         if (distance > detectionRange)
         {
             // Diam
-            if (animator != null) animator.SetBool("isWalking", false);
+            if (animator != null && hasWalkingParam) 
+                animator.SetBool("isWalking", false);
             return;
         }
 
@@ -46,10 +78,9 @@ public class ZombieAI : MonoBehaviour
             // Serang (berhenti)
             if (animator != null)
             {
-                animator.SetBool("isWalking", false);
-                animator.SetBool("isAttacking", true);
+                if (hasWalkingParam) animator.SetBool("isWalking", false);
+                if (hasAttackingParam) animator.SetBool("isAttacking", true);
             }
-            // Tambahkan logika serang jika perlu
             return;
         }
 
@@ -68,20 +99,43 @@ public class ZombieAI : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetBool("isWalking", true);
-            animator.SetBool("isAttacking", false);
+            if (hasWalkingParam) animator.SetBool("isWalking", true);
+            if (hasAttackingParam) animator.SetBool("isAttacking", false);
         }
     }
 
     public void TakeDamage(float force, Vector3 hitPoint, Vector3 direction)
     {
+        if (isDead) return; // Jangan terima damage jika sudah mati
+
+        // Beri dorongan
         rb.AddForceAtPosition(direction * force, hitPoint, ForceMode.Impulse);
+        
+        // Matikan zombie
+        Die();
     }
 
     public void Die()
     {
+        if (isDead) return;
         isDead = true;
-        if (animator != null) animator.SetBool("isWalking", false);
-        // Mati
+        
+        // Matikan animasi
+        if (animator != null)
+        {
+            if (hasWalkingParam) animator.SetBool("isWalking", false);
+            if (hasAttackingParam) animator.SetBool("isAttacking", false);
+        }
+        
+        // Nonaktifkan collider agar tidak menghalangi
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+        
+        // Biarkan rigidbody tetap aktif agar efek dorongan terlihat
+        // tapi kita tidak ingin zombie bergerak sendiri lagi
+        // (sudah diatasi dengan isDead di FixedUpdate)
+        
+        // Mulai timer untuk menghilang (di Update)
+        deathTimer = 0f;
     }
 }

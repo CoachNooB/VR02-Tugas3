@@ -18,11 +18,16 @@ public class PlayerSystemController : MonoBehaviour
     public TextMeshProUGUI statusText;
     public TextMeshProUGUI promptText;
     public TextMeshProUGUI ammoText;
+    public TextMeshProUGUI healthText;
     public InteractableObject weaponDrawerScript;
 
     [Header("Ammo")]
     public int maxAmmo = 10;
     private int _currentAmmo;
+
+    [Header("Health")]
+    public int maxHealth = 100;
+    private int _currentHealth;
 
     private InteractableObject _currentHoveredObject;
     private bool _hasPistol = false;
@@ -31,6 +36,7 @@ public class PlayerSystemController : MonoBehaviour
     {
         if (cameraTransform == null) cameraTransform = transform;
         _currentAmmo = maxAmmo;
+        _currentHealth = maxHealth;
         
         if (statusText == null)
             statusText = FindAnyObjectByType<TextMeshProUGUI>();
@@ -43,6 +49,7 @@ public class PlayerSystemController : MonoBehaviour
         }
 
         UpdateAmmoUI();
+        UpdateHealthUI();
     }
 
     private void Update()
@@ -65,6 +72,10 @@ public class PlayerSystemController : MonoBehaviour
 
                 if (obj.IsWeaponDrawer && !TriggerZoneZombie.hasInspectedDoor)
                     statusText.text = "[TERKUNCI] Laci terkunci! Periksa pintu Ruang 1 dulu.";
+                else if (obj.IsAmmoPickup)
+                    statusText.text = "Melihat: Ammo Pickup (+" + obj.AmmoAmount + " peluru)";
+                else if (obj.IsHealthPickup)
+                    statusText.text = "Melihat: Health Pickup (+" + obj.HealthAmount + " HP)";
                 else
                     statusText.text = "Melihat: " + obj.name;
 
@@ -74,18 +85,37 @@ public class PlayerSystemController : MonoBehaviour
                 {
                     if (_currentHoveredObject.Interact())
                     {
-                        statusText.text = "Berinteraksi dengan " + _currentHoveredObject.name + "!";
-                        if (_currentHoveredObject == weaponDrawerScript)
+                        if (_currentHoveredObject.IsAmmoPickup)
+                        {
+                            int ammoGain = _currentHoveredObject.AmmoAmount;
+                            _currentAmmo = Mathf.Min(_currentAmmo + ammoGain, maxAmmo);
+                            UpdateAmmoUI();
+                            statusText.text = "+" + ammoGain + " peluru!";
+                        }
+                        else if (_currentHoveredObject.IsHealthPickup)
+                        {
+                            int healthGain = _currentHoveredObject.HealthAmount;
+                            _currentHealth = Mathf.Min(_currentHealth + healthGain, maxHealth);
+                            UpdateHealthUI();
+                            statusText.text = "+" + healthGain + " HP!";
+                        }
+                        else if (_currentHoveredObject == weaponDrawerScript)
                         {
                             _hasPistol = true;
                             _currentAmmo = maxAmmo;
                             UpdateAmmoUI();
                             statusText.text = "Pistol diperoleh! (Ammo: " + _currentAmmo + ")";
                         }
+                        else
+                        {
+                            statusText.text = "Berinteraksi dengan " + _currentHoveredObject.name + "!";
+                        }
                         promptText.text = "";
                     }
                     else
+                    {
                         statusText.text = "Gagal! (mungkin terkunci)";
+                    }
                 }
             }
         }
@@ -120,10 +150,23 @@ public class PlayerSystemController : MonoBehaviour
         if (Physics.Raycast(origin, direction, out RaycastHit hit, 20f, zombiePushableLayerMask))
         {
             Rigidbody rb = hit.collider.attachedRigidbody;
+            ZombieAI zombieAI = hit.collider.GetComponent<ZombieAI>();
+
             if (rb != null && !rb.isKinematic)
             {
-                rb.AddForceAtPosition(direction * bulletImpactForce, hit.point, ForceMode.Impulse);
-                statusText.text = "Tembakan kena! Zombie terpental!";
+                // Jika ada komponen ZombieAI, panggil TakeDamage agar zombie mati
+                if (zombieAI != null)
+                {
+                    // Panggil TakeDamage dengan gaya dorong dan arah
+                    zombieAI.TakeDamage(bulletImpactForce, hit.point, direction);
+                    statusText.text = "Zombie terkena tembakan! Mati!";
+                }
+                else
+                {
+                    // Jika hanya Rigidbody biasa (fallback)
+                    rb.AddForceAtPosition(direction * bulletImpactForce, hit.point, ForceMode.Impulse);
+                    statusText.text = "Tembakan kena!";
+                }
 
                 // Efek percikan sederhana
                 GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -142,6 +185,22 @@ public class PlayerSystemController : MonoBehaviour
     private void UpdateAmmoUI()
     {
         if (ammoText != null)
-            ammoText.text = _currentAmmo + " / " + maxAmmo;
+            ammoText.text = "Ammo: " + _currentAmmo + " / " + maxAmmo;
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (healthText != null)
+            healthText.text = "HP: " + _currentHealth + " / " + maxHealth;
+    }
+
+    public void TakeDamage(int damage)
+    {
+        _currentHealth = Mathf.Max(_currentHealth - damage, 0);
+        UpdateHealthUI();
+        if (_currentHealth <= 0)
+        {
+            statusText.text = "ANDA MATI!";
+        }
     }
 }
