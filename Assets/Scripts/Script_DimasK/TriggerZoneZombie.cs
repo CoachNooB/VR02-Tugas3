@@ -12,7 +12,7 @@ public class TriggerZoneZombie : MonoBehaviour
         {
             hasInspectedDoor = true;
             if (statusText != null)
-                statusText.text = "Peringatan: Struktur pintu melemah! Cari pistol di laci!";
+                statusText.text = "⚠️ PINTU DARURAT TERBUKA! Ambil pistol di laci segera!";
         }
     }
 
@@ -21,7 +21,7 @@ public class TriggerZoneZombie : MonoBehaviour
         if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
         {
             if (statusText != null)
-                statusText.text = "Kembali ke laci untuk mengambil pistol.";
+                statusText.text = "Kembalilah ke laci untuk mengambil pistol!";
         }
     }
 }

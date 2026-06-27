@@ -66,22 +66,18 @@ public class InteractableObject : MonoBehaviour
         _pistolInHand = pistol;
     }
 
-    // Method untuk ammo pickup
     public void SetAsAmmoPickup(int amount = 5)
     {
         _isAmmoPickup = true;
         _ammoAmount = amount;
-        // Ubah warna menjadi kuning
         if (_objectRenderer != null)
             _objectRenderer.material.color = Color.yellow;
     }
 
-    // Method untuk health pickup
     public void SetAsHealthPickup(int amount = 20)
     {
         _isHealthPickup = true;
         _healthAmount = amount;
-        // Ubah warna menjadi merah muda / pink
         if (_objectRenderer != null)
             _objectRenderer.material.color = new Color(1f, 0.4f, 0.6f);
     }
