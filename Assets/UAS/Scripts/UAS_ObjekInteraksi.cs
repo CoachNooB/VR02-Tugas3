@@ -18,6 +18,7 @@ public class UAS_ObjekInteraksi : MonoBehaviour
     [SerializeField] private GameObject objekDinyalakan;  // mis. lampu/tirai -> di-toggle aktif/mati
     [SerializeField] private Renderer objekUbahWarna;     // ganti warna material saat interaksi
     [SerializeField] private Color warnaBaru = Color.green;
+    [SerializeField] private UAS_DisplayAnimasi animasiDinyalakan; // mis. gate/tirai mulai bergerak saat ditekan
 
     [Header("Khusus tombol START (opsional)")]
     [SerializeField] private UAS_KeretaMover keretaStart;          // kalau diisi, interaksi memulai kereta
@@ -37,6 +38,7 @@ public class UAS_ObjekInteraksi : MonoBehaviour
         if (suara != null) suara.Play();
         if (objekDinyalakan != null) objekDinyalakan.SetActive(!objekDinyalakan.activeSelf);
         if (objekUbahWarna != null) objekUbahWarna.material.color = warnaBaru;
+        if (animasiDinyalakan != null) animasiDinyalakan.Nyalakan(); // transisi animasi akibat interaksi
 
         // kalau ini tombol START: naikin player ke kursi + jalankan kereta
         if (playerNaik != null && kursiKereta != null) playerNaik.NaikKereta(kursiKereta);

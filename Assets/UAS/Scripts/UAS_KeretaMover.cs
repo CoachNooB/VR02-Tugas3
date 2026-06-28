@@ -24,6 +24,10 @@ public class UAS_KeretaMover : MonoBehaviour
     [SerializeField] private float kecepatan = 3f;       // kecepatan jalan (unit per detik)
     [SerializeField] private float jarakGanti = 0.2f;    // seberapa dekat baru pindah ke waypoint berikut
 
+    [Header("Ride pacing (melambat sebelum berhenti)")]
+    [SerializeField] private float jarakMelambat = 4f;   // mulai melambat sejauh ini dari titik berhenti
+    [SerializeField] private float kecepatanMin = 0.8f;  // kecepatan paling pelan pas mau berhenti
+
     [Header("Belok (opsional)")]
     [SerializeField] private bool hadapArahJalan = true; // kereta menghadap arah jalannya
     [SerializeField] private float kecepatanBelok = 5f;  // kehalusan belok
@@ -64,12 +68,21 @@ public class UAS_KeretaMover : MonoBehaviour
         // Titik tujuan = waypoint yang sekarang.
         Transform tujuan = waypoints[indexTujuan];
 
-        // Gerakkan kereta mendekati tujuan dengan kecepatan tetap.
-        // MoveTowards membuat kereta bergerak lurus ke titik, tidak keluar jalur.
+        // Ride pacing: kalau waypoint ini titik berhenti, melambat saat mendekat.
+        float kecepatanSekarang = kecepatan;
+        if (berhentiDiWaypoint != null && indexTujuan < berhentiDiWaypoint.Length
+            && berhentiDiWaypoint[indexTujuan])
+        {
+            float jarak = Vector3.Distance(transform.position, tujuan.position);
+            if (jarak < jarakMelambat)
+                kecepatanSekarang = Mathf.Lerp(kecepatanMin, kecepatan, jarak / jarakMelambat);
+        }
+
+        // Gerakkan kereta mendekati tujuan. MoveTowards membuat kereta lurus ke titik (tidak keluar jalur).
         transform.position = Vector3.MoveTowards(
             transform.position,
             tujuan.position,
-            kecepatan * Time.deltaTime);
+            kecepatanSekarang * Time.deltaTime);
 
         // Hadapkan kereta ke arah jalan (opsional, biar kelihatan natural).
         if (hadapArahJalan)
