@@ -115,20 +115,24 @@ public class UAS_KeretaMover : MonoBehaviour
         }
     }
 
-    // Pindah ke waypoint berikutnya (balik ke 0 kalau sudah terakhir = loop).
+    // Pindah ke waypoint berikutnya. Kalau sudah 1 putaran penuh -> BERHENTI di titik akhir.
     private void LanjutWaypoint()
     {
         indexTujuan++;
         if (indexTujuan >= waypoints.Length)
         {
-            indexTujuan = 0;
-            sudahSelesai = true; // sudah 1 putaran penuh (buat status)
+            // 1 putaran selesai -> kereta berhenti di waypoint terakhir (end state "Ride Complete").
+            indexTujuan = waypoints.Length - 1;
+            sedangJalan = false;
+            sudahSelesai = true;
         }
     }
 
-    // Dipanggil dari tombol Start / trigger "ride start" untuk mulai menjalankan kereta.
+    // Dipanggil dari tombol Start / trigger "ride start". Mulai (atau ulangi) dari awal.
     public void MulaiJalan()
     {
+        indexTujuan = 0;     // mulai dari waypoint pertama (biar bisa di-ride ulang)
+        sudahSelesai = false;
         sedangJalan = true;
     }
 
