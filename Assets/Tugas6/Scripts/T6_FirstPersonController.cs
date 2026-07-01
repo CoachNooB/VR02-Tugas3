@@ -30,12 +30,14 @@ public class T6_FirstPersonController : MonoBehaviour
     [SerializeField] private LayerMask layerTanah = ~0;  // ~0 = semua layer
 
     private float sudutPitch = 0f; // sudut kamera atas-bawah
+    private CapsuleCollider kapsulPlayer;
 
     // Awake: isi reference otomatis kalau lupa di-drag (Camera.main & GetComponent = contoh slide P10).
     private void Awake()
     {
         if (kameraPlayer == null && Camera.main != null) kameraPlayer = Camera.main.transform;
         if (rb == null) rb = GetComponent<Rigidbody>();
+        kapsulPlayer = GetComponent<CapsuleCollider>();
     }
 
     private void Start()
@@ -96,6 +98,9 @@ public class T6_FirstPersonController : MonoBehaviour
     // Cek apakah player menyentuh tanah (tembak ray pendek ke bawah).
     private bool DiTanah()
     {
-        return Physics.Raycast(transform.position, Vector3.down, jarakCekTanah, layerTanah);
+        if (kapsulPlayer != null)
+            return Tugas7.T7_GroundProbe.IsGrounded(transform, kapsulPlayer, jarakCekTanah, layerTanah);
+        return Physics.Raycast(transform.position, Vector3.down, jarakCekTanah, layerTanah,
+            QueryTriggerInteraction.Ignore);
     }
 }

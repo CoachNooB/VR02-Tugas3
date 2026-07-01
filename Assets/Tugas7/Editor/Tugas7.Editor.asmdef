@@ -1,0 +1,13 @@
+{
+  "name": "Tugas7.Editor",
+  "rootNamespace": "Tugas7.Editor",
+  "references": [
+    "Tugas7.Runtime",
+    "Unity.TextMeshPro",
+    "Unity.ugui"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

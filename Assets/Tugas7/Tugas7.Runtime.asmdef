@@ -1,0 +1,9 @@
+{
+  "name": "Tugas7.Runtime",
+  "rootNamespace": "Tugas7",
+  "references": [
+    "Unity.TextMeshPro",
+    "Unity.ugui"
+  ],
+  "autoReferenced": true
+}

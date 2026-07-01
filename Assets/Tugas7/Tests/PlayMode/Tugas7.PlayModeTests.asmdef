@@ -1,0 +1,12 @@
+{
+  "name": "Tugas7.PlayModeTests",
+  "rootNamespace": "Tugas7.Tests",
+  "references": [
+    "Tugas7.Runtime",
+    "Unity.ugui"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}

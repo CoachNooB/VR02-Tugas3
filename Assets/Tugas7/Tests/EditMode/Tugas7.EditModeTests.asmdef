@@ -1,0 +1,16 @@
+{
+  "name": "Tugas7.EditModeTests",
+  "rootNamespace": "Tugas7.Tests",
+  "references": [
+    "Tugas7.Runtime",
+    "Unity.TextMeshPro",
+    "Unity.ugui"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}
