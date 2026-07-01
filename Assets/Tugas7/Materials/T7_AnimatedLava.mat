@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: T7_AnimatedLava
+  m_Shader: {fileID: 4800000, guid: 000a163159ddc51b5835d220cb875ad1, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AOMap:
+        m_Texture: {fileID: 2800000, guid: fbdd57378c047e48f8f78354bbec8f76, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: edf7dbab14982e4059e44a28c25c8832, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 2800000, guid: c0d0a927f9a222268a21052cb2e0497a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HeightMap:
+        m_Texture: {fileID: 2800000, guid: 8b584c50d4121c67faab4443adf06a33, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: 2800000, guid: c5106a817a508e4a9aaa3cb24b3fcaf7, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RoughnessMap:
+        m_Texture: {fileID: 2800000, guid: cf1b82753834903b9a72fa58b35568d9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _DisplacementAmplitude: 0.018
+    - _DistortionStrength: 0.035
+    - _EmissionIntensity: 3.5
+    - _NormalStrength: 1.1
+    - _Tiling: 1.6
+    m_Colors:
+    - _CrustColor: {r: 0.16, g: 0.025, b: 0.008, a: 1}
+    - _FlowOffsetA: {r: 0, g: 0, b: 0, a: 0}
+    - _FlowOffsetB: {r: 0, g: 0, b: 0, a: 0}
+    - _FlowSpeedA: {r: 0.025, g: 0.01, b: 0, a: 0}
+    - _FlowSpeedB: {r: -0.012, g: 0.02, b: 0, a: 0}
+    - _HotColor: {r: 5, g: 0.7, b: 0.03, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

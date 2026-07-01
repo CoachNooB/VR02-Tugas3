@@ -3,7 +3,8 @@
   "rootNamespace": "Tugas7.Tests",
   "references": [
     "Tugas7.Runtime",
-    "Unity.ugui"
+    "Unity.ugui",
+    "Unity.TextMeshPro"
   ],
   "optionalUnityReferences": [
     "TestAssemblies"

@@ -8,6 +8,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -25,6 +26,7 @@ namespace Tugas7.Editor
         public static void Rebuild()
         {
             EnsureFolder("Assets/Tugas7", "Materials");
+            T7_UpgradeAssetBuilder.PrepareAll();
             Scene scene = File.Exists(ScenePath)
                 ? EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single)
                 : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -64,6 +66,7 @@ namespace Tugas7.Editor
             var terminal = CreateInteractable(start, "StartTerminal", new Vector3(0, 1.2f, 7.5f),
                 new Vector3(1.2f, 2.2f, 0.7f), Mats["Cyan"], "Start Terminal", "Gate opened — GO!", false);
             terminal.ConfigureAction(T7_CourseInteractable.CourseAction.StartCourseAndOpenGate, manager, startGate);
+            BuildTutorialNPC(start, player.transform, camera);
 
             BuildSection1(section1);
             CreateCheckpoint(checkpoint1, 1, 50f, manager);
@@ -74,6 +77,7 @@ namespace Tugas7.Editor
             BuildFinal(section4);
             var beacon = BuildFinish(finish, manager);
             manager.SetFinishInteractable(beacon);
+            BuildVisualDressing(environment, lighting);
 
             player.GetComponent<T7_RaycastInteractor>().Configure(camera, hud, 6f);
             player.GetComponent<T7_CratePusher>().Configure(camera, crate);
@@ -326,6 +330,142 @@ namespace Tugas7.Editor
             }
         }
 
+        private static void BuildTutorialNPC(Transform parent, Transform player, Camera camera)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(T7_UpgradeAssetBuilder.NpcPrefabPath);
+            if (prefab == null)
+            {
+                Debug.LogWarning("Tutorial NPC prefab is unavailable.");
+                return;
+            }
+            GameObject instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
+            instance.name = "TutorialGuide";
+            instance.transform.position = new Vector3(-3.25f, 0.5f, 5.4f);
+            Vector3 direction = player.position - instance.transform.position;
+            direction.y = 0f;
+            instance.transform.rotation = Quaternion.LookRotation(direction);
+            T7_TutorialNPC npc = instance.GetComponent<T7_TutorialNPC>();
+            T7_WorldSpaceDialogue dialogue = instance.GetComponentInChildren<T7_WorldSpaceDialogue>(true);
+            npc.Configure(instance.GetComponent<Animator>(), dialogue, player);
+            dialogue.Configure(
+                dialogue.GetComponent<Canvas>(),
+                instance.transform.Find("WorldSpaceDialogue/PromptPanel")?.gameObject,
+                instance.transform.Find("WorldSpaceDialogue/PromptPanel/Prompt")?.GetComponent<TMP_Text>(),
+                instance.transform.Find("WorldSpaceDialogue/DialoguePanel")?.gameObject,
+                instance.transform.Find("WorldSpaceDialogue/DialoguePanel/Speaker")?.GetComponent<TMP_Text>(),
+                instance.transform.Find("WorldSpaceDialogue/DialoguePanel/Line")?.GetComponent<TMP_Text>(),
+                camera.transform);
+        }
+
+        private static void BuildVisualDressing(Transform parent, Transform lighting)
+        {
+            Material metal = Mats["WeatheredMetal"];
+            Material rock = Mats["VolcanicRock"];
+            Material stripe = Mats["HazardStripe"];
+            Material props = Mats["IndustrialProps"];
+            Material crate = Mats["IndustrialCrate"];
+
+            for (int z = 10; z <= 180; z += 20)
+            {
+                CreatePipe(parent, new Vector3(-7.35f, 2.7f, z), metal);
+                CreatePipe(parent, new Vector3(7.35f, 1.4f, z + 8), metal);
+                CreateRouteLight(lighting, new Vector3(0f, 3.7f, z), z % 40 == 10);
+            }
+
+            float[] lavaEdges = { 16f, 27f, 40f, 100f, 112f, 126f, 144f, 160f, 178f };
+            foreach (float z in lavaEdges)
+            {
+                CreateRock(parent, new Vector3(-6.25f, 0.2f, z), rock, z);
+                CreateRock(parent, new Vector3(6.25f, 0.2f, z + 1.5f), rock, z + 1f);
+            }
+            foreach (float z in new[] { 29f, 112f, 160f })
+                CreateLavaParticles(parent, new Vector3(0f, 0.1f, z));
+
+            foreach (float z in new[] { 24f, 38f, 113f, 151f, 166f })
+            {
+                Primitive($"HazardStripe_Left_{z}", PrimitiveType.Cube, parent, new Vector3(-5.8f, 0.15f, z),
+                    new Vector3(1.7f, 0.12f, 0.5f), stripe);
+                Primitive($"HazardStripe_Right_{z}", PrimitiveType.Cube, parent, new Vector3(5.8f, 0.15f, z),
+                    new Vector3(1.7f, 0.12f, 0.5f), stripe);
+            }
+
+            PlaceImportedProp(parent, "Prop_Barrel1", new Vector3(-6.3f, 0.5f, 65f), Vector3.one * 1.1f, props);
+            PlaceImportedProp(parent, "Prop_Locker", new Vector3(6.45f, 0.5f, 76f), Vector3.one * 1.2f, props);
+            PlaceImportedProp(parent, "Prop_SatelliteDish", new Vector3(-6.4f, 0.6f, 132f), Vector3.one, props);
+            PlaceImportedProp(parent, "Prop_Shelves_WideTall", new Vector3(6.35f, 0.5f, 183f), Vector3.one, props);
+            PlaceImportedProp(parent, "Prop_Crate_Large", new Vector3(-6.2f, 0.65f, 184f), Vector3.one, crate);
+        }
+
+        private static void CreatePipe(Transform parent, Vector3 position, Material material)
+        {
+            GameObject pipe = Primitive($"WallPipe_{position.z}", PrimitiveType.Cylinder, parent, position,
+                new Vector3(0.22f, 3.5f, 0.22f), material);
+            pipe.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            Object.DestroyImmediate(pipe.GetComponent<Collider>());
+        }
+
+        private static void CreateRock(Transform parent, Vector3 position, Material material, float seed)
+        {
+            GameObject rock = Primitive($"VolcanicRock_{seed}", PrimitiveType.Sphere, parent, position,
+                new Vector3(1.1f + seed % 3f * 0.15f, 0.65f, 0.8f), material);
+            rock.transform.rotation = Quaternion.Euler(seed * 7f % 25f, seed * 13f % 180f, seed * 3f % 20f);
+            Object.DestroyImmediate(rock.GetComponent<Collider>());
+        }
+
+        private static void CreateRouteLight(Transform parent, Vector3 position, bool warm)
+        {
+            var go = new GameObject(warm ? "WarmLavaLight" : "CoolRouteLight");
+            go.transform.SetParent(parent);
+            go.transform.position = position;
+            Light light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = warm ? new Color(1f, 0.22f, 0.04f) : new Color(0.25f, 0.65f, 1f);
+            light.intensity = warm ? 4f : 2.5f;
+            light.range = warm ? 7f : 8f;
+            light.shadows = LightShadows.None;
+        }
+
+        private static void CreateLavaParticles(Transform parent, Vector3 position)
+        {
+            var go = new GameObject($"LavaEmbers_{position.z}", typeof(ParticleSystem));
+            go.transform.SetParent(parent);
+            go.transform.position = position;
+            ParticleSystem particles = go.GetComponent<ParticleSystem>();
+            var main = particles.main;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 1.8f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.09f);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(1f, 0.18f, 0.01f, 0.9f), new Color(1f, 0.72f, 0.08f, 1f));
+            main.maxParticles = 80;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = particles.emission;
+            emission.rateOverTime = 12f;
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(11f, 0.1f, 18f);
+            var noise = particles.noise;
+            noise.enabled = true;
+            noise.strength = 0.25f;
+            noise.frequency = 0.35f;
+        }
+
+        private static void PlaceImportedProp(Transform parent, string assetName, Vector3 position,
+            Vector3 scale, Material material)
+        {
+            string path = $"Assets/Tugas7/ThirdParty/Industrial/Models/{assetName}.fbx";
+            GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset == null) return;
+            GameObject instance = Object.Instantiate(asset, parent);
+            instance.name = assetName;
+            instance.transform.position = position;
+            instance.transform.localScale = scale;
+            instance.transform.rotation = Quaternion.Euler(0f, position.x < 0f ? 90f : -90f, 0f);
+            foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>())
+                renderer.sharedMaterial = material;
+        }
+
         private static void CreateSideWalls(Transform parent, float fromZ, float toZ, float x)
         {
             float length = toZ - fromZ;
@@ -343,7 +483,43 @@ namespace Tugas7.Editor
             var light = sun.AddComponent<Light>();
             light.type = LightType.Directional; light.intensity = 1.2f; light.shadows = LightShadows.Soft;
             RenderSettings.ambientIntensity = 0.7f;
+            CreatePostProcessing(parent);
         }
+
+        private static void CreatePostProcessing(Transform parent)
+        {
+            const string profilePath = "Assets/Tugas7/T7_VolcanicFacilityVolume.asset";
+            VolumeProfile profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, profilePath);
+            }
+            Bloom bloom = GetOrAddVolumeComponent<Bloom>(profile);
+            bloom.intensity.Override(0.45f);
+            bloom.threshold.Override(1.15f);
+            bloom.scatter.Override(0.55f);
+            ColorAdjustments color = GetOrAddVolumeComponent<ColorAdjustments>(profile);
+            color.postExposure.Override(-0.05f);
+            color.contrast.Override(8f);
+            color.saturation.Override(-4f);
+            Vignette vignette = GetOrAddVolumeComponent<Vignette>(profile);
+            vignette.intensity.Override(0.18f);
+            vignette.smoothness.Override(0.45f);
+            Tonemapping tonemapping = GetOrAddVolumeComponent<Tonemapping>(profile);
+            tonemapping.mode.Override(TonemappingMode.ACES);
+            EditorUtility.SetDirty(profile);
+
+            var volumeObject = new GameObject("Global Volcanic Facility Volume");
+            volumeObject.transform.SetParent(parent);
+            Volume volume = volumeObject.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 1f;
+            volume.sharedProfile = profile;
+        }
+
+        private static T GetOrAddVolumeComponent<T>(VolumeProfile profile) where T : VolumeComponent =>
+            profile.TryGet(out T component) ? component : profile.Add<T>();
 
         private static void CreateFloor(string name, Transform parent, Vector3 pos, Vector3 scale) =>
             Primitive(name, PrimitiveType.Cube, parent, pos, scale, Mats["Safe"]);
@@ -352,6 +528,7 @@ namespace Tugas7.Editor
             var lava = Primitive("Lava", PrimitiveType.Cube, parent, pos, scale, Mats["Lava"]);
             lava.GetComponent<Collider>().isTrigger = true;
             lava.AddComponent<T7_DamageVolume>().DamagePerSecond = 20f;
+            lava.AddComponent<T7_LavaMaterialController>().Configure(Mats["Lava"]);
         }
         private static void CreateReset(Transform parent, Vector3 pos, Vector3 scale)
         {
@@ -429,7 +606,7 @@ namespace Tugas7.Editor
         private static void CreateMaterials()
         {
             Mats.Clear();
-            MakeMaterial("Lava", new Color(1f, 0.12f, 0.01f), new Color(4f, 0.25f, 0.01f));
+            Mats["Lava"] = AssetDatabase.LoadAssetAtPath<Material>(T7_UpgradeAssetBuilder.LavaMaterialPath);
             MakeMaterial("Safe", new Color(0.32f, 0.36f, 0.42f));
             MakeMaterial("Checkpoint", new Color(0.05f, 0.25f, 1f), new Color(0.05f, 0.25f, 2f));
             MakeMaterial("Obstacle", new Color(0.9f, 0.04f, 0.03f), new Color(1.5f, 0.02f, 0.01f));
@@ -439,7 +616,17 @@ namespace Tugas7.Editor
             MakeMaterial("Gold", new Color(1f, 0.55f, 0.03f), new Color(2f, 0.7f, 0.02f));
             MakeMaterial("Wall", new Color(0.1f, 0.12f, 0.16f));
             MakeMaterial("Invisible", Color.clear);
+            LoadEnvironmentMaterial("WeatheredMetal");
+            LoadEnvironmentMaterial("ReinforcedConcrete");
+            LoadEnvironmentMaterial("VolcanicRock");
+            LoadEnvironmentMaterial("HazardStripe");
+            LoadEnvironmentMaterial("IndustrialProps");
+            LoadEnvironmentMaterial("IndustrialCrate");
         }
+
+        private static void LoadEnvironmentMaterial(string name) =>
+            Mats[name] = AssetDatabase.LoadAssetAtPath<Material>(
+                $"Assets/Tugas7/Materials/Environment/T7_{name}.mat");
 
         private static void MakeMaterial(string name, Color baseColor, Color? emission = null)
         {

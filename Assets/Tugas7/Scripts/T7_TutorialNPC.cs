@@ -1,0 +1,128 @@
+using System;
+using System.Collections;
+using UnityEngine;
+
+namespace Tugas7
+{
+    public sealed class T7_TutorialNPC : MonoBehaviour
+    {
+        public enum NPCState { Unavailable, Waving, Talking }
+
+        public static readonly string[] TutorialLines =
+        {
+            "Welcome to the Volcanic Training Facility. Reach the finish after activating all three checkpoints.",
+            "Lava and red machinery damage you. Blue checkpoint zones become respawn points and restore health.",
+            "Use WASD and the mouse to move, then press Space to jump over hazardous sections.",
+            "Press E near highlighted controls. Left-click the yellow crate to push it onto the pressure plate."
+        };
+
+        [SerializeField] private Animator animator;
+        [SerializeField] private T7_WorldSpaceDialogue dialogue;
+        [SerializeField] private Transform player;
+        [SerializeField, Min(0.01f)] private float secondsPerLine = 4f;
+        [SerializeField, Min(0f)] private float turnSpeed = 360f;
+
+        private Coroutine conversation;
+        private bool playerNearby;
+
+        public NPCState State { get; private set; } = NPCState.Waving;
+        public bool CanInteract => playerNearby && !IsTalking && isActiveAndEnabled;
+        public bool IsTalking => State == NPCState.Talking;
+
+        public event Action ConversationStarted;
+        public event Action<int, string> LineChanged;
+        public event Action ConversationFinished;
+
+        public void Configure(Animator targetAnimator, T7_WorldSpaceDialogue targetDialogue, Transform targetPlayer,
+            float lineDuration = 4f)
+        {
+            animator = targetAnimator;
+            dialogue = targetDialogue;
+            player = targetPlayer;
+            secondsPerLine = Mathf.Max(0.01f, lineDuration);
+            SetTalkingAnimation(false);
+        }
+
+        public void SetPlayerNearby(bool nearby)
+        {
+            playerNearby = nearby;
+            if (!nearby)
+            {
+                CancelConversation();
+                dialogue?.HidePrompt();
+                return;
+            }
+
+            if (!IsTalking)
+                dialogue?.ShowPrompt("Press E — Talk to Guide");
+        }
+
+        public bool TryStartConversation()
+        {
+            if (!CanInteract)
+                return false;
+
+            State = NPCState.Talking;
+            dialogue?.HidePrompt();
+            SetTalkingAnimation(true);
+            ConversationStarted?.Invoke();
+            conversation = StartCoroutine(ConversationRoutine());
+            return true;
+        }
+
+        public void CancelConversation()
+        {
+            if (conversation != null)
+            {
+                StopCoroutine(conversation);
+                conversation = null;
+            }
+
+            bool wasTalking = IsTalking;
+            State = NPCState.Waving;
+            SetTalkingAnimation(false);
+            dialogue?.HideDialogue();
+            if (wasTalking)
+                ConversationFinished?.Invoke();
+        }
+
+        private IEnumerator ConversationRoutine()
+        {
+            for (int i = 0; i < TutorialLines.Length; i++)
+            {
+                dialogue?.ShowDialogue("FACILITY GUIDE", TutorialLines[i]);
+                LineChanged?.Invoke(i, TutorialLines[i]);
+                yield return new WaitForSeconds(secondsPerLine);
+            }
+
+            conversation = null;
+            State = NPCState.Waving;
+            SetTalkingAnimation(false);
+            dialogue?.HideDialogue();
+            ConversationFinished?.Invoke();
+            if (playerNearby)
+                dialogue?.ShowPrompt("Press E — Talk to Guide");
+        }
+
+        private void Update()
+        {
+            if (!IsTalking || player == null)
+                return;
+
+            Vector3 direction = player.position - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.001f)
+                return;
+            Quaternion target = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
+        }
+
+        private void OnDisable() => CancelConversation();
+
+        private void SetTalkingAnimation(bool value)
+        {
+            if (animator != null)
+                animator.SetBool("IsTalking", value);
+        }
+    }
+}
