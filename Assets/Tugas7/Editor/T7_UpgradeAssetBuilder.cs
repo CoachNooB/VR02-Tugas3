@@ -189,7 +189,11 @@ namespace Tugas7.Editor
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             }
             if (AssetImporter.GetAtPath(path) is TextureImporter importer &&
-                (!importer.sRGBTexture || importer.maxTextureSize != 256))
+                (importer.textureType != TextureImporterType.Default ||
+                 !importer.sRGBTexture ||
+                 !importer.mipmapEnabled ||
+                 importer.textureCompression != TextureImporterCompression.Compressed ||
+                 importer.maxTextureSize != 256))
             {
                 importer.textureType = TextureImporterType.Default;
                 importer.sRGBTexture = true;
@@ -327,6 +331,7 @@ namespace Tugas7.Editor
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
             if (controller == null)
                 controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
+            NormalizeControllerLayers(controller);
             AnimatorControllerLayer layer = controller.layers[0];
             AnimatorStateMachine machine = layer.stateMachine;
             if (ControllerIsCurrent(controller, machine))
@@ -361,11 +366,43 @@ namespace Tugas7.Editor
             enterHit.duration = 0.15f;
             enterHit.canTransitionToSelf = false;
             enterHit.AddCondition(AnimatorConditionMode.If, 0f, "HeadHit");
+            enterHit.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsVictorious");
             AddVictoryTransition(headHitState, victoryState, true);
             AddHeadHitExit(headHitState, talkingState, true);
             AddHeadHitExit(headHitState, wavingState, false);
             EditorUtility.SetDirty(controller);
             return controller;
+        }
+
+        private static void NormalizeControllerLayers(AnimatorController controller)
+        {
+            AnimatorControllerLayer[] layers = controller.layers;
+            if (layers.Length == 0)
+            {
+                controller.AddLayer("Base Layer");
+                layers = controller.layers;
+            }
+            else if (layers.Length > 1)
+            {
+                controller.layers = new[] { layers[0] };
+                layers = controller.layers;
+            }
+
+            AnimatorControllerLayer layer = layers[0];
+            bool changed = false;
+            if (layer.name != "Base Layer")
+            {
+                layer.name = "Base Layer";
+                changed = true;
+            }
+            if (layer.stateMachine == null)
+            {
+                layer.stateMachine = new AnimatorStateMachine();
+                AssetDatabase.AddObjectToAsset(layer.stateMachine, controller);
+                changed = true;
+            }
+            if (changed)
+                controller.layers = new[] { layer };
         }
 
         private static void EnsureParameter(AnimatorController controller, string name,
@@ -415,10 +452,13 @@ namespace Tugas7.Editor
                        !transition.hasExitTime &&
                        !transition.canTransitionToSelf &&
                        Mathf.Abs(transition.duration - 0.15f) < 0.001f &&
-                       transition.conditions.Length == 1 &&
+                       transition.conditions.Length == 2 &&
                        transition.conditions.Any(condition =>
                            condition.parameter == "HeadHit" &&
-                           condition.mode == AnimatorConditionMode.If)) == 1;
+                           condition.mode == AnimatorConditionMode.If) &&
+                       transition.conditions.Any(condition =>
+                           condition.parameter == "IsVictorious" &&
+                           condition.mode == AnimatorConditionMode.IfNot)) == 1;
         }
 
         private static bool HasSingleParameter(AnimatorController controller, string name,

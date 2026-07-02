@@ -192,6 +192,31 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void VictoriousNpcRejectsHeadHit()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryVictoryHeadHitTest.controller";
+            var go = new GameObject("NPC");
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+                controller.AddParameter("HeadHit", AnimatorControllerParameterType.Trigger);
+                animator.runtimeAnimatorController = controller;
+                var npc = go.AddComponent<T7_TutorialNPC>();
+                npc.Configure(animator, null, null);
+                npc.EnterVictory();
+
+                Assert.That(npc.TryPlayHeadHit(), Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
         public void VictoryHidesDialogueUiAndProximityCannotRestorePrompt()
         {
             var npcGo = new GameObject("NPC");
@@ -468,8 +493,11 @@ namespace Tugas7.Tests
             Assert.That(hitEntry.hasExitTime, Is.False);
             Assert.That(hitEntry.canTransitionToSelf, Is.False);
             Assert.That(hitEntry.duration, Is.EqualTo(0.15f).Within(0.001f));
+            Assert.That(hitEntry.conditions, Has.Length.EqualTo(2));
             Assert.That(hitEntry.conditions.Any(condition =>
                 condition.parameter == "HeadHit" && condition.mode == AnimatorConditionMode.If), Is.True);
+            Assert.That(hitEntry.conditions.Any(condition =>
+                condition.parameter == "IsVictorious" && condition.mode == AnimatorConditionMode.IfNot), Is.True);
 
             ModelImporter wavingImporter = (ModelImporter)AssetImporter.GetAtPath(
                 "Assets/Animations/Ch44_nonPBR@Waving.fbx");
@@ -516,6 +544,13 @@ namespace Tugas7.Tests
                 {
                     Assert.That(texture.width, Is.EqualTo(256));
                     Assert.That(texture.height, Is.EqualTo(256));
+                    TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(
+                        AssetDatabase.GetAssetPath(texture));
+                    Assert.That(importer.textureType, Is.EqualTo(TextureImporterType.Default));
+                    Assert.That(importer.sRGBTexture, Is.True);
+                    Assert.That(importer.mipmapEnabled, Is.True);
+                    Assert.That(importer.textureCompression, Is.EqualTo(TextureImporterCompression.Compressed));
+                    Assert.That(importer.maxTextureSize, Is.EqualTo(256));
                 }
             }
         }
@@ -528,20 +563,25 @@ namespace Tugas7.Tests
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(
                 "Assets/Tugas7/Animations/T7_TutorialNPC.controller");
             prepare.Invoke(null, null);
-            AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
-                .Single(state => state.name == "Waving");
-            AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
-                transition.destinationState != null && transition.destinationState.name == "Victory");
-            waving.RemoveTransition(victoryRoute);
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
-
-            prepare.Invoke(null, null);
-
-            waving = controller.layers[0].stateMachine.states.Select(child => child.state)
-                .Single(state => state.name == "Waving");
-            Assert.That(waving.transitions.Any(transition =>
-                transition.destinationState != null && transition.destinationState.name == "Victory"), Is.True);
+            try
+            {
+                AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                    .Single(state => state.name == "Waving");
+                AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
+                    transition.destinationState != null && transition.destinationState.name == "Victory");
+                waving.RemoveTransition(victoryRoute);
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                    .Single(state => state.name == "Waving");
+                Assert.That(waving.transitions.Any(transition =>
+                    transition.destinationState != null && transition.destinationState.name == "Victory"), Is.True);
+            }
+            finally
+            {
+                prepare.Invoke(null, null);
+            }
         }
 
         [Test]
@@ -552,25 +592,28 @@ namespace Tugas7.Tests
             MethodInfo prepare = builder?.GetMethod("PrepareAll");
             prepare.Invoke(null, null);
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
-            foreach (AnimatorControllerParameter parameter in controller.parameters.ToArray())
+            try
             {
-                controller.RemoveParameter(parameter);
+                foreach (AnimatorControllerParameter parameter in controller.parameters.ToArray())
+                    controller.RemoveParameter(parameter);
+                controller.AddParameter("IsTalking", AnimatorControllerParameterType.Trigger);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Trigger);
+                controller.AddParameter("HeadHit", AnimatorControllerParameterType.Bool);
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                AssertRequiredParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool);
+                AssertRequiredParameter(controller, "IsVictorious", AnimatorControllerParameterType.Bool);
+                AssertRequiredParameter(controller, "HeadHit", AnimatorControllerParameterType.Trigger);
+                Assert.That(controller.parameters, Has.Length.EqualTo(3));
+                string repaired = File.ReadAllText(path);
+                prepare.Invoke(null, null);
+                Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
             }
-            controller.AddParameter("IsTalking", AnimatorControllerParameterType.Trigger);
-            controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Trigger);
-            controller.AddParameter("HeadHit", AnimatorControllerParameterType.Bool);
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
-
-            prepare.Invoke(null, null);
-
-            AssertRequiredParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool);
-            AssertRequiredParameter(controller, "IsVictorious", AnimatorControllerParameterType.Bool);
-            AssertRequiredParameter(controller, "HeadHit", AnimatorControllerParameterType.Trigger);
-            Assert.That(controller.parameters, Has.Length.EqualTo(3));
-            string repaired = File.ReadAllText(path);
-            prepare.Invoke(null, null);
-            Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+            finally
+            {
+                prepare.Invoke(null, null);
+            }
         }
 
         [Test]
@@ -581,22 +624,27 @@ namespace Tugas7.Tests
             prepare.Invoke(null, null);
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(
                 "Assets/Tugas7/Animations/T7_TutorialNPC.controller");
-            AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
-                .Single(state => state.name == "Waving");
-            AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
-                transition.destinationState != null && transition.destinationState.name == "Victory");
-            victoryRoute.AddCondition(AnimatorConditionMode.If, 0f, "IsTalking");
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
-
-            prepare.Invoke(null, null);
-
-            waving = controller.layers[0].stateMachine.states.Select(child => child.state)
-                .Single(state => state.name == "Waving");
-            victoryRoute = waving.transitions.Single(transition =>
-                transition.destinationState != null && transition.destinationState.name == "Victory");
-            Assert.That(victoryRoute.conditions, Has.Length.EqualTo(1));
-            Assert.That(victoryRoute.conditions[0].parameter, Is.EqualTo("IsVictorious"));
+            try
+            {
+                AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                    .Single(state => state.name == "Waving");
+                AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
+                    transition.destinationState != null && transition.destinationState.name == "Victory");
+                victoryRoute.AddCondition(AnimatorConditionMode.If, 0f, "IsTalking");
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                    .Single(state => state.name == "Waving");
+                victoryRoute = waving.transitions.Single(transition =>
+                    transition.destinationState != null && transition.destinationState.name == "Victory");
+                Assert.That(victoryRoute.conditions, Has.Length.EqualTo(1));
+                Assert.That(victoryRoute.conditions[0].parameter, Is.EqualTo("IsVictorious"));
+            }
+            finally
+            {
+                prepare.Invoke(null, null);
+            }
         }
 
         [Test]
@@ -607,26 +655,66 @@ namespace Tugas7.Tests
             MethodInfo prepare = builder?.GetMethod("PrepareAll");
             prepare.Invoke(null, null);
             AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
-            AnimatorStateMachine machine = controller.layers[0].stateMachine;
-            AnimatorState[] states = machine.states.Select(child => child.state).ToArray();
-            AnimatorState waving = states.Single(state => state.name == "Waving");
-            AnimatorState headHit = states.Single(state => state.name == "Head Hit");
-            waving.AddTransition(headHit);
-            machine.AddAnyStateTransition(waving);
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
+            try
+            {
+                AnimatorStateMachine machine = controller.layers[0].stateMachine;
+                AnimatorState[] states = machine.states.Select(child => child.state).ToArray();
+                AnimatorState waving = states.Single(state => state.name == "Waving");
+                AnimatorState headHit = states.Single(state => state.name == "Head Hit");
+                waving.AddTransition(headHit);
+                machine.AddAnyStateTransition(waving);
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                states = machine.states.Select(child => child.state).ToArray();
+                Assert.That(states.Single(state => state.name == "Waving").transitions, Has.Length.EqualTo(2));
+                Assert.That(states.Single(state => state.name == "Talking").transitions, Has.Length.EqualTo(2));
+                Assert.That(states.Single(state => state.name == "Head Hit").transitions, Has.Length.EqualTo(3));
+                Assert.That(states.Single(state => state.name == "Victory").transitions, Is.Empty);
+                Assert.That(machine.anyStateTransitions, Has.Length.EqualTo(1));
+                string repaired = File.ReadAllText(path);
+                prepare.Invoke(null, null);
+                Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+            }
+            finally
+            {
+                prepare.Invoke(null, null);
+            }
+        }
 
-            prepare.Invoke(null, null);
+        [Test]
+        public void PrepareAllRepairsZeroAndExtraControllerLayersIdempotently()
+        {
+            const string path = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+            string backup = File.ReadAllText(path);
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            try
+            {
+                AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+                controller.AddLayer("Unexpected");
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                Assert.That(controller.layers, Has.Length.EqualTo(1));
+                Assert.That(controller.layers[0].name, Is.EqualTo("Base Layer"));
 
-            states = machine.states.Select(child => child.state).ToArray();
-            Assert.That(states.Single(state => state.name == "Waving").transitions, Has.Length.EqualTo(2));
-            Assert.That(states.Single(state => state.name == "Talking").transitions, Has.Length.EqualTo(2));
-            Assert.That(states.Single(state => state.name == "Head Hit").transitions, Has.Length.EqualTo(3));
-            Assert.That(states.Single(state => state.name == "Victory").transitions, Is.Empty);
-            Assert.That(machine.anyStateTransitions, Has.Length.EqualTo(1));
-            string repaired = File.ReadAllText(path);
-            prepare.Invoke(null, null);
-            Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+                controller.layers = Array.Empty<AnimatorControllerLayer>();
+                EditorUtility.SetDirty(controller);
+                AssetDatabase.SaveAssets();
+                prepare.Invoke(null, null);
+                Assert.That(controller.layers, Has.Length.EqualTo(1));
+                Assert.That(controller.layers[0].name, Is.EqualTo("Base Layer"));
+                string repaired = File.ReadAllText(path);
+                prepare.Invoke(null, null);
+                Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+            }
+            finally
+            {
+                File.WriteAllText(path, backup);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                prepare.Invoke(null, null);
+            }
         }
 
         private static void AssertRequiredParameter(AnimatorController controller, string name,

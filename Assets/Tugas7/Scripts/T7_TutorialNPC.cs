@@ -136,7 +136,7 @@ namespace Tugas7
 
         public bool TryPlayHeadHit()
         {
-            if (!isActiveAndEnabled)
+            if (!isActiveAndEnabled || IsVictorious)
                 return false;
             if (animator == null)
                 animator = GetComponent<Animator>();
