@@ -94,6 +94,8 @@ namespace Tugas7
             dialogue?.HidePrompt();
             SetTalkingAnimation(true);
             ConversationStarted?.Invoke();
+            if (!IsTalking)
+                return true;
             conversation = StartCoroutine(ConversationRoutine());
             return true;
         }
@@ -195,21 +197,25 @@ namespace Tugas7
 
         private void SetTalkingAnimation(bool value)
         {
-            if (animator != null)
-                animator.SetBool("IsTalking", value);
+            SetAnimatorBool("IsTalking", value);
         }
 
         private void SetVictoryAnimation(bool value)
+        {
+            SetAnimatorBool("IsVictorious", value);
+        }
+
+        private void SetAnimatorBool(string parameterName, bool value)
         {
             if (animator == null)
                 return;
 
             foreach (AnimatorControllerParameter parameter in animator.parameters)
             {
-                if (parameter.name == "IsVictorious" &&
+                if (parameter.name == parameterName &&
                     parameter.type == AnimatorControllerParameterType.Bool)
                 {
-                    animator.SetBool("IsVictorious", value);
+                    animator.SetBool(parameterName, value);
                     return;
                 }
             }

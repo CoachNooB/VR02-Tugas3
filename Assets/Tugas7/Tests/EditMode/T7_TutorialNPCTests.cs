@@ -225,6 +225,95 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void ConversationStartedVictoryPreventsDialogueRoutineStartup()
+        {
+            var npcGo = new GameObject("NPC");
+            var dialogueGo = new GameObject("Dialogue");
+            var dialoguePanel = new GameObject("DialoguePanel");
+            try
+            {
+                dialoguePanel.transform.SetParent(dialogueGo.transform);
+                var dialogue = dialogueGo.AddComponent<T7_WorldSpaceDialogue>();
+                dialogue.Configure(null, null, null, dialoguePanel, null, null, null);
+                var npc = npcGo.AddComponent<T7_TutorialNPC>();
+                npc.Configure(null, dialogue, null, 1f);
+                npc.ConfigureDialogue(new[] { "This line must not start." });
+                int changedCount = 0;
+                int finishedCount = 0;
+                npc.LineChanged += (_, _) => changedCount++;
+                npc.ConversationFinished += () => finishedCount++;
+                npc.ConversationStarted += npc.EnterVictory;
+                npc.SetPlayerNearby(true);
+
+                Assert.That(npc.TryStartConversation(), Is.True);
+
+                Assert.That(npc.IsVictorious, Is.True);
+                Assert.That(changedCount, Is.Zero);
+                Assert.That(dialogue.DialogueVisible, Is.False);
+                Assert.That(finishedCount, Is.EqualTo(1));
+                npc.CancelConversation();
+                Assert.That(finishedCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(npcGo);
+                UnityEngine.Object.DestroyImmediate(dialogueGo);
+            }
+        }
+
+        [Test]
+        public void TalkingAnimationIgnoresControllerWithOnlyVictoryBool()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryVictoryOnlyTest.controller";
+            var go = new GameObject("NPC");
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+                animator.runtimeAnimatorController = controller;
+                var npc = go.AddComponent<T7_TutorialNPC>();
+
+                npc.Configure(animator, null, null);
+                npc.SetPlayerNearby(true);
+                npc.TryStartConversation();
+                npc.CancelConversation();
+
+                UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
+        public void AnimatorWritesIgnoreControllerWithoutNpcBools()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryNoBoolsTest.controller";
+            var go = new GameObject("NPC");
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                animator.runtimeAnimatorController =
+                    AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                var npc = go.AddComponent<T7_TutorialNPC>();
+
+                npc.Configure(animator, null, null);
+                npc.EnterVictory();
+
+                Assert.That(npc.IsVictorious, Is.True);
+                UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
         public void ProximityControlsInteractionAndLeavingCancels()
         {
             var go = new GameObject("NPC");
