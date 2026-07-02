@@ -398,7 +398,11 @@ namespace Tugas7.Editor
                    talking.motion == FindClip(TalkingPath, "Talking") &&
                    headHit.motion == FindClip(HeadHitPath, "Head Hit") &&
                    victory.motion == FindClip(VictoryPath, "Victory") &&
+                   waving.transitions.Length == 2 &&
+                   talking.transitions.Length == 2 &&
+                   headHit.transitions.Length == 3 &&
                    victory.transitions.Length == 0 &&
+                   machine.anyStateTransitions.Length == 1 &&
                    HasTransition(waving, victory, "IsVictorious", AnimatorConditionMode.If, false) &&
                    HasTransition(talking, victory, "IsVictorious", AnimatorConditionMode.If, false) &&
                    HasTransition(headHit, victory, "IsVictorious", AnimatorConditionMode.If, true) &&

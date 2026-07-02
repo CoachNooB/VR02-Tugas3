@@ -599,6 +599,36 @@ namespace Tugas7.Tests
             Assert.That(victoryRoute.conditions[0].parameter, Is.EqualTo("IsVictorious"));
         }
 
+        [Test]
+        public void PrepareAllRemovesExtraNpcTransitionsIdempotently()
+        {
+            const string path = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            prepare.Invoke(null, null);
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            AnimatorState[] states = machine.states.Select(child => child.state).ToArray();
+            AnimatorState waving = states.Single(state => state.name == "Waving");
+            AnimatorState headHit = states.Single(state => state.name == "Head Hit");
+            waving.AddTransition(headHit);
+            machine.AddAnyStateTransition(waving);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+
+            prepare.Invoke(null, null);
+
+            states = machine.states.Select(child => child.state).ToArray();
+            Assert.That(states.Single(state => state.name == "Waving").transitions, Has.Length.EqualTo(2));
+            Assert.That(states.Single(state => state.name == "Talking").transitions, Has.Length.EqualTo(2));
+            Assert.That(states.Single(state => state.name == "Head Hit").transitions, Has.Length.EqualTo(3));
+            Assert.That(states.Single(state => state.name == "Victory").transitions, Is.Empty);
+            Assert.That(machine.anyStateTransitions, Has.Length.EqualTo(1));
+            string repaired = File.ReadAllText(path);
+            prepare.Invoke(null, null);
+            Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+        }
+
         private static void AssertRequiredParameter(AnimatorController controller, string name,
             AnimatorControllerParameterType type)
         {
