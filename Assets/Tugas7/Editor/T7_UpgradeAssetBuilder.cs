@@ -14,6 +14,7 @@ namespace Tugas7.Editor
         public const string NpcPrefabPath = "Assets/Tugas7/Prefabs/T7_TutorialNPC.prefab";
         private const string WavingPath = "Assets/Animations/Ch44_nonPBR@Waving.fbx";
         private const string TalkingPath = "Assets/Animations/Ch44_nonPBR@Talking.fbx";
+        private const string HeadHitPath = "Assets/Animations/Ch44_nonPBR@Head Hit.fbx";
         private const string ControllerPath = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
 
         public static void PrepareAll()
@@ -65,9 +66,10 @@ namespace Tugas7.Editor
             ConfigureModel(WavingPath, "Waving", null);
             Avatar avatar = AssetDatabase.LoadAllAssetsAtPath(WavingPath).OfType<Avatar>().FirstOrDefault();
             ConfigureModel(TalkingPath, "Talking", avatar);
+            ConfigureModel(HeadHitPath, "Head Hit", avatar, false);
         }
 
-        private static void ConfigureModel(string path, string clipName, Avatar sourceAvatar)
+        private static void ConfigureModel(string path, string clipName, Avatar sourceAvatar, bool loopTime = true)
         {
             if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
                 return;
@@ -80,7 +82,7 @@ namespace Tugas7.Editor
             ModelImporterClipAnimation clip = importer.defaultClipAnimations.FirstOrDefault() ??
                                               new ModelImporterClipAnimation();
             clip.name = clipName;
-            clip.loopTime = true;
+            clip.loopTime = loopTime;
             clip.keepOriginalOrientation = true;
             clip.keepOriginalPositionXZ = true;
             clip.keepOriginalPositionY = true;
@@ -129,6 +131,21 @@ namespace Tugas7.Editor
             CreateLitMaterial("ReinforcedConcrete", new Color(0.35f, 0.37f, 0.39f), 0.05f, 0.18f,
                 "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_BaseColor.png",
                 "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_Normal.png");
+            CreateLitMaterial("DarkConcreteWall", new Color(0.16f, 0.18f, 0.21f), 0.05f, 0.14f,
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_BaseColor.png",
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_Normal.png");
+            CreateLitMaterial("DangerMetal", new Color(0.95f, 0.035f, 0.025f), 0.72f, 0.24f,
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Trim_02_BaseColor.png",
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Trim_02_Normal.png",
+                new Color(1.5f, 0.025f, 0.01f));
+            CreateLitMaterial("InteractableMetal", new Color(0.02f, 0.72f, 0.9f), 0.58f, 0.3f,
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_BaseColor.png",
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_Normal.png",
+                new Color(0.02f, 1.2f, 1.8f));
+            CreateLitMaterial("GoldMetal", new Color(1f, 0.55f, 0.03f), 0.68f, 0.32f,
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_BaseColor.png",
+                "Assets/Tugas7/ThirdParty/Industrial/Textures/T_Props_Batch1_Normal.png",
+                new Color(2f, 0.7f, 0.02f));
             CreateLitMaterial("VolcanicRock", new Color(0.12f, 0.1f, 0.095f), 0.02f, 0.12f,
                 "Assets/Tugas7/Textures/Lava/Lava_01_basecolor_1K.png",
                 "Assets/Tugas7/Textures/Lava/Lava_01_normal_1K.png");
@@ -144,7 +161,7 @@ namespace Tugas7.Editor
         }
 
         private static void CreateLitMaterial(string name, Color color, float metallic, float smoothness,
-            string basePath, string normalPath)
+            string basePath, string normalPath, Color? emission = null)
         {
             string path = $"Assets/Tugas7/Materials/Environment/T7_{name}.mat";
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
@@ -161,6 +178,16 @@ namespace Tugas7.Editor
             material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(basePath));
             material.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath));
             material.EnableKeyword("_NORMALMAP");
+            if (emission.HasValue)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", emission.Value);
+            }
+            else
+            {
+                material.DisableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", Color.black);
+            }
             EditorUtility.SetDirty(material);
         }
 
@@ -175,16 +202,28 @@ namespace Tugas7.Editor
                 machine.RemoveState(state.state);
             if (!controller.parameters.Any(p => p.name == "IsTalking"))
                 controller.AddParameter("IsTalking", AnimatorControllerParameterType.Bool);
+            if (!controller.parameters.Any(p => p.name == "HeadHit"))
+                controller.AddParameter("HeadHit", AnimatorControllerParameterType.Trigger);
 
             AnimationClip waving = FindClip(WavingPath, "Waving");
             AnimationClip talking = FindClip(TalkingPath, "Talking");
+            AnimationClip headHit = FindClip(HeadHitPath, "Head Hit");
             AnimatorState wavingState = machine.AddState("Waving");
             wavingState.motion = waving;
             AnimatorState talkingState = machine.AddState("Talking");
             talkingState.motion = talking;
+            AnimatorState headHitState = machine.AddState("Head Hit");
+            headHitState.motion = headHit;
             machine.defaultState = wavingState;
             AddTransition(wavingState, talkingState, true);
             AddTransition(talkingState, wavingState, false);
+            AnimatorStateTransition enterHit = machine.AddAnyStateTransition(headHitState);
+            enterHit.hasExitTime = false;
+            enterHit.duration = 0.08f;
+            enterHit.canTransitionToSelf = false;
+            enterHit.AddCondition(AnimatorConditionMode.If, 0f, "HeadHit");
+            AddHeadHitExit(headHitState, talkingState, true);
+            AddHeadHitExit(headHitState, wavingState, false);
             EditorUtility.SetDirty(controller);
             return controller;
         }
@@ -195,6 +234,16 @@ namespace Tugas7.Editor
             transition.hasExitTime = false;
             transition.duration = 0.15f;
             transition.AddCondition(value ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "IsTalking");
+        }
+
+        private static void AddHeadHitExit(AnimatorState from, AnimatorState to, bool talking)
+        {
+            AnimatorStateTransition transition = from.AddTransition(to);
+            transition.hasExitTime = true;
+            transition.exitTime = 0.92f;
+            transition.duration = 0.12f;
+            transition.AddCondition(talking ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot,
+                0f, "IsTalking");
         }
 
         private static AnimationClip FindClip(string path, string name) =>
@@ -217,6 +266,10 @@ namespace Tugas7.Editor
             animator.applyRootMotion = false;
             animator.avatar = AssetDatabase.LoadAllAssetsAtPath(WavingPath).OfType<Avatar>().FirstOrDefault();
             var npc = root.AddComponent<T7_TutorialNPC>();
+            CapsuleCollider hitCollider = root.AddComponent<CapsuleCollider>();
+            hitCollider.center = new Vector3(0f, 1f, 0f);
+            hitCollider.height = 2f;
+            hitCollider.radius = 0.42f;
 
             var trigger = new GameObject("InteractionRange");
             trigger.transform.SetParent(root.transform, false);

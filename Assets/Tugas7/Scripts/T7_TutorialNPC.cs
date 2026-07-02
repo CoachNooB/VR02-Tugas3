@@ -25,7 +25,7 @@ namespace Tugas7
 
         private Coroutine conversation;
         private bool playerNearby;
-        private string[] dialogueLines = TutorialLines;
+        [SerializeField] private string[] dialogueLines = TutorialLines;
 
         public NPCState State { get; private set; } = NPCState.Waving;
         public bool CanInteract => playerNearby && !IsTalking && isActiveAndEnabled;
@@ -84,6 +84,18 @@ namespace Tugas7
             SetTalkingAnimation(true);
             ConversationStarted?.Invoke();
             conversation = StartCoroutine(ConversationRoutine());
+            return true;
+        }
+
+        public bool TryPlayHeadHit()
+        {
+            if (!isActiveAndEnabled)
+                return false;
+            if (animator == null)
+                animator = GetComponent<Animator>();
+            if (animator == null)
+                return false;
+            animator.SetTrigger("HeadHit");
             return true;
         }
 

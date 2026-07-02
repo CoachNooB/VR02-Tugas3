@@ -66,15 +66,28 @@ namespace Tugas7.Editor
             var terminal = CreateInteractable(start, "StartTerminal", new Vector3(0, 1.2f, 7.5f),
                 new Vector3(1.2f, 2.2f, 0.7f), Mats["Cyan"], "Start Terminal", "Gate opened — GO!", false);
             terminal.ConfigureAction(T7_CourseInteractable.CourseAction.StartCourseAndOpenGate, manager, startGate);
-            BuildTutorialNPC(start, player.transform, camera);
+            BuildTutorialNPC(start, "StartGuide", new Vector3(-3.25f, 0.5f, 5.4f),
+                player.transform, camera, T7_TutorialNPC.TutorialLines);
 
             BuildSection1(section1);
+            BuildSectionGuide(section1, "Section1Guide", new Vector3(5.35f, 0.5f, 15f),
+                player.transform, camera,
+                "Time your jumps between platforms and avoid the rotating machinery.");
             CreateCheckpoint(checkpoint1, 1, 50f, manager);
             Rigidbody crate = BuildPuzzle(section2, manager);
+            BuildSectionGuide(section2, "Section2Guide", new Vector3(5.2f, 0.5f, 58f),
+                player.transform, camera,
+                "Push the yellow crate onto the pressure plate to open the gate.");
             CreateCheckpoint(checkpoint2, 2, 92f, manager);
             BuildSection3(section3);
+            BuildSectionGuide(section3, "Section3Guide", new Vector3(-5.25f, 0.5f, 97f),
+                player.transform, camera,
+                "Ride the moving platforms and keep clear of the sweeper.");
             CreateCheckpoint(checkpoint3, 3, 137f, manager);
             BuildFinal(section4);
+            BuildSectionGuide(section4, "Section4Guide", new Vector3(5.25f, 0.5f, 143f),
+                player.transform, camera,
+                "Combine precise jumps and timing to reach the finish.");
             var beacon = BuildFinish(finish, manager);
             manager.SetFinishInteractable(beacon);
             BuildVisualDressing(environment, lighting);
@@ -108,6 +121,7 @@ namespace Tugas7.Editor
             health = player.AddComponent<T7_PlayerHealth>();
             player.AddComponent<T7_RaycastInteractor>();
             player.AddComponent<T7_CratePusher>();
+            player.AddComponent<T7_NPCHeadHitInteractor>();
             player.AddComponent<T7_RespawnController>();
 
             var cameraGo = new GameObject("Main Camera") { tag = "MainCamera" };
@@ -118,6 +132,7 @@ namespace Tugas7.Editor
             cameraGo.AddComponent<AudioListener>();
 
             movement = AddT6Controller(player, camera.transform, body);
+            player.GetComponent<T7_NPCHeadHitInteractor>().Configure(camera, 3f);
             hud = CreateHud(camera.transform, health);
             return player;
         }
@@ -287,7 +302,7 @@ namespace Tugas7.Editor
 
         private static T7_Gate CreateGate(Transform parent, string name, Vector3 closed, Vector3 open)
         {
-            var go = Primitive(name, PrimitiveType.Cube, parent, closed, new Vector3(11, 4, 0.7f), Mats["Obstacle"]);
+            var go = Primitive(name, PrimitiveType.Cube, parent, closed, new Vector3(11, 4, 0.7f), Mats["WeatheredMetal"]);
             var gate = go.AddComponent<T7_Gate>();
             gate.Configure(closed, open, 4f);
             return gate;
@@ -330,7 +345,17 @@ namespace Tugas7.Editor
             }
         }
 
-        private static void BuildTutorialNPC(Transform parent, Transform player, Camera camera)
+        private static void BuildSectionGuide(Transform parent, string name, Vector3 position,
+            Transform player, Camera camera, string line)
+        {
+            Primitive($"{name}Pedestal", PrimitiveType.Cube, parent,
+                new Vector3(position.x, 0f, position.z), new Vector3(2.2f, 0.5f, 2.2f),
+                Mats["ReinforcedConcrete"]);
+            BuildTutorialNPC(parent, name, position, player, camera, new[] { line });
+        }
+
+        private static void BuildTutorialNPC(Transform parent, string name, Vector3 position,
+            Transform player, Camera camera, IReadOnlyList<string> lines)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(T7_UpgradeAssetBuilder.NpcPrefabPath);
             if (prefab == null)
@@ -339,14 +364,15 @@ namespace Tugas7.Editor
                 return;
             }
             GameObject instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
-            instance.name = "TutorialGuide";
-            instance.transform.position = new Vector3(-3.25f, 0.5f, 5.4f);
+            instance.name = name;
+            instance.transform.position = position;
             Vector3 direction = player.position - instance.transform.position;
             direction.y = 0f;
             instance.transform.rotation = Quaternion.LookRotation(direction);
             T7_TutorialNPC npc = instance.GetComponent<T7_TutorialNPC>();
             T7_WorldSpaceDialogue dialogue = instance.GetComponentInChildren<T7_WorldSpaceDialogue>(true);
             npc.Configure(instance.GetComponent<Animator>(), dialogue, player);
+            npc.ConfigureDialogue(lines);
             dialogue.Configure(
                 dialogue.GetComponent<Canvas>(),
                 instance.transform.Find("WorldSpaceDialogue/PromptPanel")?.gameObject,
@@ -607,26 +633,25 @@ namespace Tugas7.Editor
         {
             Mats.Clear();
             Mats["Lava"] = AssetDatabase.LoadAssetAtPath<Material>(T7_UpgradeAssetBuilder.LavaMaterialPath);
-            MakeMaterial("Safe", new Color(0.32f, 0.36f, 0.42f));
+            Mats["Safe"] = LoadEnvironmentMaterial("ReinforcedConcrete");
             MakeMaterial("Checkpoint", new Color(0.05f, 0.25f, 1f), new Color(0.05f, 0.25f, 2f));
-            MakeMaterial("Obstacle", new Color(0.9f, 0.04f, 0.03f), new Color(1.5f, 0.02f, 0.01f));
+            Mats["Obstacle"] = LoadEnvironmentMaterial("DangerMetal");
             MakeMaterial("Crate", new Color(1f, 0.65f, 0.03f));
             MakeMaterial("PlateOff", new Color(0.5f, 0.08f, 0.72f), new Color(0.3f, 0.02f, 0.5f));
-            MakeMaterial("Cyan", new Color(0.02f, 0.75f, 0.9f), new Color(0.02f, 1.3f, 1.8f));
-            MakeMaterial("Gold", new Color(1f, 0.55f, 0.03f), new Color(2f, 0.7f, 0.02f));
-            MakeMaterial("Wall", new Color(0.1f, 0.12f, 0.16f));
+            Mats["Cyan"] = LoadEnvironmentMaterial("InteractableMetal");
+            Mats["Gold"] = LoadEnvironmentMaterial("GoldMetal");
+            Mats["Wall"] = LoadEnvironmentMaterial("DarkConcreteWall");
             MakeMaterial("Invisible", Color.clear);
-            LoadEnvironmentMaterial("WeatheredMetal");
-            LoadEnvironmentMaterial("ReinforcedConcrete");
-            LoadEnvironmentMaterial("VolcanicRock");
-            LoadEnvironmentMaterial("HazardStripe");
-            LoadEnvironmentMaterial("IndustrialProps");
-            LoadEnvironmentMaterial("IndustrialCrate");
+            Mats["WeatheredMetal"] = LoadEnvironmentMaterial("WeatheredMetal");
+            Mats["ReinforcedConcrete"] = LoadEnvironmentMaterial("ReinforcedConcrete");
+            Mats["VolcanicRock"] = LoadEnvironmentMaterial("VolcanicRock");
+            Mats["HazardStripe"] = LoadEnvironmentMaterial("HazardStripe");
+            Mats["IndustrialProps"] = LoadEnvironmentMaterial("IndustrialProps");
+            Mats["IndustrialCrate"] = LoadEnvironmentMaterial("IndustrialCrate");
         }
 
-        private static void LoadEnvironmentMaterial(string name) =>
-            Mats[name] = AssetDatabase.LoadAssetAtPath<Material>(
-                $"Assets/Tugas7/Materials/Environment/T7_{name}.mat");
+        private static Material LoadEnvironmentMaterial(string name) =>
+            AssetDatabase.LoadAssetAtPath<Material>($"Assets/Tugas7/Materials/Environment/T7_{name}.mat");
 
         private static void MakeMaterial(string name, Color baseColor, Color? emission = null)
         {

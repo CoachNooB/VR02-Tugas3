@@ -21,5 +21,19 @@ namespace Tugas7.Tests
             foreach (string property in properties)
                 Assert.That(material.HasProperty(property), Is.True, property);
         }
+
+        [TestCase("T7_ReinforcedConcrete")]
+        [TestCase("T7_DarkConcreteWall")]
+        [TestCase("T7_WeatheredMetal")]
+        [TestCase("T7_DangerMetal")]
+        [TestCase("T7_InteractableMetal")]
+        public void EnvironmentMaterialUsesBaseAndNormalMaps(string materialName)
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(
+                $"Assets/Tugas7/Materials/Environment/{materialName}.mat");
+            Assert.That(material, Is.Not.Null, materialName);
+            Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null, $"{materialName} base map");
+            Assert.That(material.GetTexture("_BumpMap"), Is.Not.Null, $"{materialName} normal map");
+        }
     }
 }

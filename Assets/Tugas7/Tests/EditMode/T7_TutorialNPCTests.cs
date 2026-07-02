@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
 
 namespace Tugas7.Tests
 {
@@ -99,6 +102,46 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void HeadHitRayRequiresDirectNpcHitWithinRange()
+        {
+            Type interactorType = Type.GetType("Tugas7.T7_NPCHeadHitInteractor, Tugas7.Runtime");
+            Assert.That(interactorType, Is.Not.Null);
+            MethodInfo configure = interactorType.GetMethod("Configure");
+            MethodInfo tryHit = interactorType.GetMethod("TryHit");
+            Assert.That(configure, Is.Not.Null);
+            Assert.That(tryHit, Is.Not.Null);
+
+            var player = new GameObject("Player");
+            var cameraGo = new GameObject("Camera");
+            var npcGo = new GameObject("NPC");
+            try
+            {
+                cameraGo.transform.SetParent(player.transform);
+                Camera camera = cameraGo.AddComponent<Camera>();
+                Component interactor = player.AddComponent(interactorType);
+                var npc = npcGo.AddComponent<T7_TutorialNPC>();
+                npcGo.AddComponent<Animator>();
+                npcGo.AddComponent<CapsuleCollider>();
+                npcGo.transform.position = new Vector3(0f, 0f, 2f);
+                Physics.SyncTransforms();
+                configure.Invoke(interactor, new object[] { camera, 3f });
+
+                bool nearHit = (bool)tryHit.Invoke(interactor, new object[] { new Ray(Vector3.zero, Vector3.forward) });
+                npcGo.transform.position = new Vector3(0f, 0f, 4f);
+                Physics.SyncTransforms();
+                bool farHit = (bool)tryHit.Invoke(interactor, new object[] { new Ray(Vector3.zero, Vector3.forward) });
+
+                Assert.That(nearHit, Is.True);
+                Assert.That(farHit, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(player);
+                UnityEngine.Object.DestroyImmediate(npcGo);
+            }
+        }
+
+        [Test]
         public void TutorialPrefabUsesOnlyWorldSpaceCanvases()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -107,6 +150,27 @@ namespace Tugas7.Tests
             Canvas[] canvases = prefab.GetComponentsInChildren<Canvas>(true);
             Assert.That(canvases, Is.Not.Empty);
             Assert.That(canvases, Has.All.Matches<Canvas>(canvas => canvas.renderMode == RenderMode.WorldSpace));
+        }
+
+        [Test]
+        public void BuiltSceneContainsStartAndFourSectionGuides()
+        {
+            Scene scene = EditorSceneManager.OpenScene(
+                "Assets/Scenes/T6_T7_MainScene.unity", OpenSceneMode.Additive);
+            try
+            {
+                T7_TutorialNPC[] guides = scene.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<T7_TutorialNPC>(true))
+                    .ToArray();
+                Assert.That(guides, Has.Length.EqualTo(5));
+                Assert.That(guides.Count(guide => guide.DialogueLines.Count == 1), Is.EqualTo(4));
+                Assert.That(guides.SelectMany(guide => guide.GetComponentsInChildren<Canvas>(true)),
+                    Has.All.Matches<Canvas>(canvas => canvas.renderMode == RenderMode.WorldSpace));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
         }
 
         [Test]
