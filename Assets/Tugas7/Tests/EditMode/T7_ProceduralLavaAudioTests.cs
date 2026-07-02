@@ -9,6 +9,12 @@ namespace Tugas7.Tests
 {
     public class T7_ProceduralLavaAudioTests
     {
+        [SetUp]
+        public void SetUp() => T7_ProceduralLavaAudio.ResetCacheForTests();
+
+        [TearDown]
+        public void TearDown() => T7_ProceduralLavaAudio.ResetCacheForTests();
+
         [Test]
         public void CreateClipIsDeterministicBoundedMonoAndLoopable()
         {
@@ -26,7 +32,31 @@ namespace Tugas7.Tests
             Assert.That(firstSamples.Max(value => Mathf.Abs(value)), Is.GreaterThan(0.05f).And.LessThanOrEqualTo(0.8f));
             Assert.That(firstSamples.All(value => !float.IsNaN(value) && !float.IsInfinity(value) &&
                 Mathf.Abs(value) <= 1f), Is.True);
-            Assert.That(Mathf.Abs(firstSamples[0] - firstSamples[firstSamples.Length - 1]), Is.LessThan(0.15f));
+            float boundaryDelta = Mathf.Abs(firstSamples[0] - firstSamples[firstSamples.Length - 1]);
+            Assert.That(boundaryDelta, Is.GreaterThan(0.000001f),
+                "Loop smoothing must not fake continuity by copying the first sample to the endpoint.");
+            const int seamWindow = 128;
+            float seamSquareSum = boundaryDelta * boundaryDelta;
+            float seamMax = boundaryDelta;
+            for (int offset = 1; offset < seamWindow; offset++)
+            {
+                float tailDelta = Mathf.Abs(firstSamples[firstSamples.Length - offset] -
+                    firstSamples[firstSamples.Length - offset - 1]);
+                float headDelta = Mathf.Abs(firstSamples[offset] - firstSamples[offset - 1]);
+                seamSquareSum += tailDelta * tailDelta + headDelta * headDelta;
+                seamMax = Mathf.Max(seamMax, tailDelta, headDelta);
+            }
+            float seamRms = Mathf.Sqrt(seamSquareSum / (seamWindow * 2f - 1f));
+            float internalSquareSum = 0f;
+            for (int i = seamWindow + 1; i < firstSamples.Length - seamWindow; i++)
+            {
+                float delta = firstSamples[i] - firstSamples[i - 1];
+                internalSquareSum += delta * delta;
+            }
+            float internalRms = Mathf.Sqrt(internalSquareSum /
+                (firstSamples.Length - seamWindow * 2 - 1f));
+            Assert.That(seamMax, Is.LessThan(0.05f));
+            Assert.That(seamRms, Is.LessThanOrEqualTo(internalRms * 1.5f + 0.001f));
         }
 
         [Test]
@@ -74,6 +104,32 @@ namespace Tugas7.Tests
             Assert.That(regenerated.GetData(regeneratedSamples, 0), Is.True);
             Assert.That(ReferenceEquals(regenerated, first), Is.False);
             Assert.That(regeneratedSamples, Is.EqualTo(originalSamples));
+        }
+
+        [Test]
+        public void CacheRetiresEvictedClipOnlyAfterAudioSourceReleasesIt()
+        {
+            const int sampleRate = 8002;
+            const float duration = 0.2f;
+            const int firstSeed = 51000;
+            var sourceObject = new GameObject("LiveLavaSource");
+            AudioSource source = sourceObject.AddComponent<AudioSource>();
+            AudioClip first = T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, firstSeed);
+            source.clip = first;
+
+            for (int seed = firstSeed + 1; seed <= firstSeed + 8; seed++)
+                T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, seed);
+
+            Assert.That(T7_ProceduralLavaAudio.CachedClipCount, Is.EqualTo(8));
+            Assert.That(T7_ProceduralLavaAudio.PendingRetirementCount, Is.EqualTo(1));
+            Assert.That(source.clip, Is.SameAs(first));
+            var samples = new float[first.samples];
+            Assert.That(first.GetData(samples, 0), Is.True);
+
+            Object.DestroyImmediate(sourceObject);
+            T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, firstSeed + 8);
+
+            Assert.That(T7_ProceduralLavaAudio.PendingRetirementCount, Is.Zero);
         }
 
         [Test]

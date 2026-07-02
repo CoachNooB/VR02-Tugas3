@@ -117,6 +117,7 @@ namespace Tugas7.Tests
             Assert.That(controller.PlaybackRequestCount, Is.EqualTo(2));
             LogAssert.NoUnexpectedReceived();
             Object.Destroy(root);
+            yield return null;
         }
     }
 }

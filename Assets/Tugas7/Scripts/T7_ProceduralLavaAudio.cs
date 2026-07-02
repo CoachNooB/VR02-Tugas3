@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+
+[assembly: InternalsVisibleTo("Tugas7.EditModeTests")]
 
 namespace Tugas7
 {
@@ -9,13 +12,17 @@ namespace Tugas7
         private const int MaxCachedClips = 8;
         private static readonly Dictionary<ClipKey, AudioClip> ClipCache = new();
         private static readonly Queue<ClipKey> CacheOrder = new();
+        private static readonly List<AudioClip> PendingRetirement = new();
 
         [SerializeField] private List<AudioSource> targets = new();
 
         public int PlaybackRequestCount { get; private set; }
+        internal static int CachedClipCount => ClipCache.Count;
+        internal static int PendingRetirementCount => PendingRetirement.Count;
 
         public static AudioClip CreateClip(int sampleRate = 22050, float duration = 4f, int seed = 73421)
         {
+            CleanupRetiredClips();
             sampleRate = Mathf.Clamp(sampleRate, 8000, 48000);
             if (float.IsNaN(duration) || float.IsInfinity(duration))
                 duration = 4f;
@@ -62,11 +69,7 @@ namespace Tugas7
                 if (ClipCache.TryGetValue(oldest, out AudioClip oldClip))
                 {
                     ClipCache.Remove(oldest);
-                    if (oldClip != null)
-                    {
-                        if (Application.isPlaying) Destroy(oldClip);
-                        else DestroyImmediate(oldClip);
-                    }
+                    RetireOrDestroy(oldClip);
                 }
             }
             ClipCache[key] = clip;
@@ -76,15 +79,23 @@ namespace Tugas7
 
         public void Configure(IReadOnlyList<AudioSource> newTargets)
         {
+            PlaybackRequestCount = 0;
             targets.Clear();
             if (newTargets != null)
                 for (int i = 0; i < newTargets.Count; i++)
                     if (newTargets[i] != null)
                         targets.Add(newTargets[i]);
             ApplyConfiguration(true);
+            CleanupRetiredClips();
         }
 
-        private void OnEnable() => ApplyConfiguration(Application.isPlaying);
+        private void OnEnable()
+        {
+            PlaybackRequestCount = 0;
+            ApplyConfiguration(Application.isPlaying);
+        }
+
+        private void OnDisable() => CleanupRetiredClips();
 
         private void ApplyConfiguration(bool assignClip)
         {
@@ -113,19 +124,83 @@ namespace Tugas7
             }
         }
 
+        internal static void ResetCacheForTests()
+        {
+            foreach (AudioClip clip in ClipCache.Values)
+                RetireOrDestroy(clip);
+            ClipCache.Clear();
+            CacheOrder.Clear();
+            CleanupRetiredClips();
+        }
+
+        private static void RetireOrDestroy(AudioClip clip)
+        {
+            if (clip == null)
+                return;
+            if (IsReferencedByAudioSource(clip))
+            {
+                if (!PendingRetirement.Contains(clip))
+                    PendingRetirement.Add(clip);
+                return;
+            }
+            DestroyClip(clip);
+        }
+
+        private static void CleanupRetiredClips()
+        {
+            for (int i = PendingRetirement.Count - 1; i >= 0; i--)
+            {
+                AudioClip clip = PendingRetirement[i];
+                if (clip == null || !IsReferencedByAudioSource(clip))
+                {
+                    PendingRetirement.RemoveAt(i);
+                    DestroyClip(clip);
+                }
+            }
+        }
+
+        private static bool IsReferencedByAudioSource(AudioClip clip)
+        {
+            AudioSource[] sources = Resources.FindObjectsOfTypeAll<AudioSource>();
+            for (int i = 0; i < sources.Length; i++)
+                if (sources[i] != null && sources[i].clip == clip)
+                    return true;
+            return false;
+        }
+
+        private static void DestroyClip(AudioClip clip)
+        {
+            if (clip == null)
+                return;
+            if (Application.isPlaying)
+                Destroy(clip);
+            else
+                DestroyImmediate(clip);
+        }
+
         private static void SmoothLoop(float[] samples, int crossfadeLength)
         {
             if (crossfadeLength <= 0)
                 return;
-            int start = samples.Length - crossfadeLength;
-            for (int i = 0; i < crossfadeLength; i++)
+            crossfadeLength = Mathf.Min(crossfadeLength, (samples.Length - 2) / 2);
+            if (crossfadeLength <= 0)
+                return;
+
+            int leftAnchor = samples.Length - crossfadeLength - 1;
+            int rightAnchor = crossfadeLength;
+            float from = samples[leftAnchor];
+            float to = samples[rightAnchor];
+            int bridgeSampleCount = crossfadeLength * 2;
+            for (int step = 1; step <= bridgeSampleCount; step++)
             {
-                float t = (float)i / (crossfadeLength - 1);
-                float fromEnd = Mathf.Cos(t * Mathf.PI * 0.5f);
-                float fromStart = Mathf.Sin(t * Mathf.PI * 0.5f);
-                samples[start + i] = samples[start + i] * fromEnd + samples[i] * fromStart;
+                float t = (float)step / (bridgeSampleCount + 1);
+                float smoothT = t * t * (3f - 2f * t);
+                float value = Mathf.LerpUnclamped(from, to, smoothT);
+                int index = step <= crossfadeLength
+                    ? samples.Length - crossfadeLength + step - 1
+                    : step - crossfadeLength - 1;
+                samples[index] = value;
             }
-            samples[samples.Length - 1] = samples[0];
         }
 
         private readonly struct ClipKey : IEquatable<ClipKey>
