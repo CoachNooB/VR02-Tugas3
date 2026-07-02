@@ -96,7 +96,15 @@ namespace Tugas7
             ConversationStarted?.Invoke();
             if (!IsTalking)
                 return true;
-            conversation = StartCoroutine(ConversationRoutine());
+            Coroutine startedConversation = StartCoroutine(ConversationRoutine());
+            if (IsTalking)
+                conversation = startedConversation;
+            else
+            {
+                if (startedConversation != null)
+                    StopCoroutine(startedConversation);
+                conversation = null;
+            }
             return true;
         }
 
@@ -159,17 +167,25 @@ namespace Tugas7
         {
             for (int i = 0; i < dialogueLines.Length; i++)
             {
+                if (!IsTalking)
+                    yield break;
+
                 dialogue?.ShowDialogue("FACILITY GUIDE", dialogueLines[i]);
                 LineChanged?.Invoke(i, dialogueLines[i]);
+                if (!IsTalking)
+                    yield break;
                 yield return new WaitForSeconds(secondsPerLine);
             }
+
+            if (!IsTalking)
+                yield break;
 
             conversation = null;
             State = NPCState.Waving;
             SetTalkingAnimation(false);
             dialogue?.HideDialogue();
             ConversationFinished?.Invoke();
-            if (playerNearby)
+            if (playerNearby && !IsVictorious)
                 dialogue?.ShowPrompt("Press E — Talk to Guide");
         }
 
