@@ -108,17 +108,36 @@ namespace Tugas7.Editor
                 ? System.Array.Empty<Material>()
                 : model.GetComponentsInChildren<SkinnedMeshRenderer>(true)
                     .SelectMany(renderer => renderer.sharedMaterials).Where(material => material != null).ToArray();
-            Texture2D[] embedded = imported.Select(FindBaseMap).Where(texture => texture != null).Distinct().ToArray();
-            Texture2D clothingMap = embedded.FirstOrDefault();
-            Texture2D skinMap = embedded.Skip(1).FirstOrDefault() ?? clothingMap;
-            Texture2D normalMap = imported.Select(FindNormalMap).FirstOrDefault(texture => texture != null);
+            Texture2D clothingMap = FindSemanticMap(imported, false, FindBaseMap);
+            Texture2D skinMap = FindSemanticMap(imported, true, FindBaseMap);
+            Texture2D clothingNormal = FindSemanticMap(imported, false, FindNormalMap);
+            Texture2D skinNormal = FindSemanticMap(imported, true, FindNormalMap);
             if (clothingMap == null)
-            {
                 clothingMap = EnsureFallbackTexture("T7_NPC_Clothing.png", false);
+            if (skinMap == null)
                 skinMap = EnsureFallbackTexture("T7_NPC_Skin.png", true);
+            CreateNpcMaterial("T7_NPC_Clothing", clothingMap, clothingNormal, false);
+            CreateNpcMaterial("T7_NPC_Skin", skinMap, skinNormal, true);
+        }
+
+        private static Texture2D FindSemanticMap(Material[] materials, bool skin,
+            System.Func<Material, Texture2D> selector)
+        {
+            foreach (Material material in materials)
+            {
+                Texture2D texture = selector(material);
+                if (texture == null)
+                    continue;
+                string description = $"{material.name} {texture.name}".ToLowerInvariant();
+                bool skinCue = description.Contains("skin") || description.Contains("face") ||
+                               description.Contains("head");
+                bool clothingCue = description.Contains("cloth") || description.Contains("shirt") ||
+                                   description.Contains("jacket") || description.Contains("pants") ||
+                                   description.Contains("uniform") || description.Contains("outfit");
+                if (skin ? skinCue : clothingCue)
+                    return texture;
             }
-            CreateNpcMaterial("T7_NPC_Clothing", clothingMap, normalMap, false);
-            CreateNpcMaterial("T7_NPC_Skin", skinMap, normalMap, true);
+            return null;
         }
 
         private static Texture2D FindBaseMap(Material material)
@@ -340,7 +359,7 @@ namespace Tugas7.Editor
             AddTransition(talkingState, wavingState, false);
             AnimatorStateTransition enterHit = machine.AddAnyStateTransition(headHitState);
             enterHit.hasExitTime = false;
-            enterHit.duration = 0.08f;
+            enterHit.duration = 0.15f;
             enterHit.canTransitionToSelf = false;
             enterHit.AddCondition(AnimatorConditionMode.If, 0f, "HeadHit");
             AddVictoryTransition(headHitState, victoryState, true);
@@ -352,12 +371,13 @@ namespace Tugas7.Editor
 
         private static bool ControllerIsCurrent(AnimatorController controller, AnimatorStateMachine machine)
         {
-            string[] stateNames = machine.states.Select(child => child.state.name).ToArray();
-            return stateNames.Length == 4 &&
-                   stateNames.Contains("Waving") &&
-                   stateNames.Contains("Talking") &&
-                   stateNames.Contains("Head Hit") &&
-                   stateNames.Contains("Victory") &&
+            AnimatorState[] states = machine.states.Select(child => child.state).ToArray();
+            AnimatorState waving = states.FirstOrDefault(state => state.name == "Waving");
+            AnimatorState talking = states.FirstOrDefault(state => state.name == "Talking");
+            AnimatorState headHit = states.FirstOrDefault(state => state.name == "Head Hit");
+            AnimatorState victory = states.FirstOrDefault(state => state.name == "Victory");
+            return states.Length == 4 &&
+                   waving != null && talking != null && headHit != null && victory != null &&
                    controller.parameters.Any(parameter =>
                        parameter.name == "IsTalking" &&
                        parameter.type == AnimatorControllerParameterType.Bool) &&
@@ -366,8 +386,41 @@ namespace Tugas7.Editor
                        parameter.type == AnimatorControllerParameterType.Trigger) &&
                    controller.parameters.Any(parameter =>
                        parameter.name == "IsVictorious" &&
-                       parameter.type == AnimatorControllerParameterType.Bool);
+                       parameter.type == AnimatorControllerParameterType.Bool) &&
+                   machine.defaultState == waving &&
+                   waving.motion == FindClip(WavingPath, "Waving") &&
+                   talking.motion == FindClip(TalkingPath, "Talking") &&
+                   headHit.motion == FindClip(HeadHitPath, "Head Hit") &&
+                   victory.motion == FindClip(VictoryPath, "Victory") &&
+                   victory.transitions.Length == 0 &&
+                   HasTransition(waving, victory, "IsVictorious", AnimatorConditionMode.If, false) &&
+                   HasTransition(talking, victory, "IsVictorious", AnimatorConditionMode.If, false) &&
+                   HasTransition(headHit, victory, "IsVictorious", AnimatorConditionMode.If, true) &&
+                   HasTransition(waving, talking, "IsTalking", AnimatorConditionMode.If, false) &&
+                   HasTransition(talking, waving, "IsTalking", AnimatorConditionMode.IfNot, false) &&
+                   HasTransition(headHit, talking, "IsTalking", AnimatorConditionMode.If, true) &&
+                   HasTransition(headHit, waving, "IsTalking", AnimatorConditionMode.IfNot, true) &&
+                   machine.anyStateTransitions.Any(transition =>
+                       transition.destinationState == headHit &&
+                       !transition.hasExitTime &&
+                       !transition.canTransitionToSelf &&
+                       Mathf.Abs(transition.duration - 0.15f) < 0.001f &&
+                       transition.conditions.Any(condition =>
+                           condition.parameter == "HeadHit" &&
+                           condition.mode == AnimatorConditionMode.If));
         }
+
+        private static bool HasTransition(AnimatorState from, AnimatorState to, string parameter,
+            AnimatorConditionMode mode, bool exitTime) =>
+            from.transitions.Any(transition =>
+                transition.destinationState == to &&
+                transition.hasExitTime == exitTime &&
+                Mathf.Abs(transition.duration - 0.15f) < 0.001f &&
+                transition.conditions.Any(condition =>
+                    condition.parameter == parameter && condition.mode == mode) &&
+                (parameter == "IsVictorious" || transition.conditions.Any(condition =>
+                    condition.parameter == "IsVictorious" &&
+                    condition.mode == AnimatorConditionMode.IfNot)));
 
         private static void AddTransition(AnimatorState from, AnimatorState to, bool value)
         {
@@ -413,6 +466,8 @@ namespace Tugas7.Editor
             model.name = "GuideModel";
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.identity;
+            foreach (Animator nestedAnimator in model.GetComponentsInChildren<Animator>(true))
+                Object.DestroyImmediate(nestedAnimator);
             var animator = root.AddComponent<Animator>();
             animator.runtimeAnimatorController = controller;
             animator.applyRootMotion = false;

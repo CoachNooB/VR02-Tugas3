@@ -454,20 +454,117 @@ namespace Tugas7.Tests
             AnimatorState victory = states.Single(state => state.name == "Victory");
             Assert.That(victory.motion, Is.TypeOf<AnimationClip>());
             Assert.That(((AnimationClip)victory.motion).isLooping, Is.True);
+            Assert.That(controller.layers[0].stateMachine.defaultState.name, Is.EqualTo("Waving"));
+            Assert.That(victory.transitions, Is.Empty);
+            AssertVictoryRoute(states, "Waving", false);
+            AssertVictoryRoute(states, "Talking", false);
+            AssertVictoryRoute(states, "Head Hit", true);
+            AssertTalkRoute(states, "Waving", "Talking", AnimatorConditionMode.If);
+            AssertTalkRoute(states, "Talking", "Waving", AnimatorConditionMode.IfNot);
+            AssertTalkRoute(states, "Head Hit", "Talking", AnimatorConditionMode.If);
+            AssertTalkRoute(states, "Head Hit", "Waving", AnimatorConditionMode.IfNot);
+            AnimatorStateTransition hitEntry = controller.layers[0].stateMachine.anyStateTransitions
+                .Single(transition => transition.destinationState.name == "Head Hit");
+            Assert.That(hitEntry.hasExitTime, Is.False);
+            Assert.That(hitEntry.canTransitionToSelf, Is.False);
+            Assert.That(hitEntry.duration, Is.EqualTo(0.15f).Within(0.001f));
+            Assert.That(hitEntry.conditions.Any(condition =>
+                condition.parameter == "HeadHit" && condition.mode == AnimatorConditionMode.If), Is.True);
+
+            ModelImporter wavingImporter = (ModelImporter)AssetImporter.GetAtPath(
+                "Assets/Animations/Ch44_nonPBR@Waving.fbx");
+            ModelImporter victoryImporter = (ModelImporter)AssetImporter.GetAtPath(
+                "Assets/Animations/Ch44_nonPBR@Victory Idle.fbx");
+            Assert.That(victoryImporter.animationType, Is.EqualTo(ModelImporterAnimationType.Human));
+            Assert.That(victoryImporter.avatarSetup, Is.EqualTo(ModelImporterAvatarSetup.CopyFromOther));
+            Assert.That(victoryImporter.sourceAvatar,
+                Is.EqualTo(AssetDatabase.LoadAllAssetsAtPath(wavingImporter.assetPath).OfType<Avatar>().First()));
+            ModelImporterClipAnimation importedVictory = victoryImporter.clipAnimations.Single();
+            Assert.That(importedVictory.name, Is.EqualTo("Victory"));
+            Assert.That(importedVictory.loopTime, Is.True);
+            Assert.That(importedVictory.lockRootRotation, Is.True);
+            Assert.That(importedVictory.lockRootPositionXZ, Is.True);
+            Assert.That(importedVictory.lockRootHeightY, Is.True);
 
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/Tugas7/Prefabs/T7_TutorialNPC.prefab");
+            Animator[] animators = prefab.GetComponentsInChildren<Animator>(true);
+            Assert.That(animators, Has.Length.EqualTo(1));
+            Assert.That(animators[0].gameObject, Is.EqualTo(prefab));
+            Assert.That(animators[0].applyRootMotion, Is.False);
+            Assert.That(animators[0].keepAnimatorStateOnDisable, Is.True);
+            Assert.That(animators[0].avatar, Is.EqualTo(victoryImporter.sourceAvatar));
+            Assert.That(animators[0].runtimeAnimatorController, Is.EqualTo(controller));
             SkinnedMeshRenderer[] renderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             Assert.That(renderers, Is.Not.Empty);
+            Assert.That(renderers.Sum(renderer => renderer.sharedMaterials.Length), Is.EqualTo(2));
+            Assert.That(renderers, Has.All.Matches<SkinnedMeshRenderer>(renderer =>
+                renderer.sharedMesh != null && renderer.bones.Length > 0));
             foreach (SkinnedMeshRenderer renderer in renderers)
             foreach (Material material in renderer.sharedMaterials)
             {
                 Assert.That(material, Is.Not.Null, renderer.name);
                 Assert.That(material.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"), renderer.name);
                 Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null, renderer.name);
+                Assert.That(material.GetFloat("_Metallic"), Is.Zero.Within(0.001f), material.name);
+                Assert.That(material.GetFloat("_Smoothness"),
+                    Is.EqualTo(material.name.Contains("Skin") ? 0.32f : 0.16f).Within(0.001f), material.name);
                 StringAssert.StartsWith("Assets/Tugas7/Materials/NPC/",
                     AssetDatabase.GetAssetPath(material), renderer.name);
+                Texture2D texture = (Texture2D)material.GetTexture("_BaseMap");
+                if (AssetDatabase.GetAssetPath(texture).StartsWith("Assets/Tugas7/Textures/NPC/"))
+                {
+                    Assert.That(texture.width, Is.EqualTo(256));
+                    Assert.That(texture.height, Is.EqualTo(256));
+                }
             }
+        }
+
+        [Test]
+        public void PrepareAllRepairsMalformedNpcController()
+        {
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                "Assets/Tugas7/Animations/T7_TutorialNPC.controller");
+            prepare.Invoke(null, null);
+            AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                .Single(state => state.name == "Waving");
+            AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
+                transition.destinationState != null && transition.destinationState.name == "Victory");
+            waving.RemoveTransition(victoryRoute);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+
+            prepare.Invoke(null, null);
+
+            waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                .Single(state => state.name == "Waving");
+            Assert.That(waving.transitions.Any(transition =>
+                transition.destinationState != null && transition.destinationState.name == "Victory"), Is.True);
+        }
+
+        private static void AssertVictoryRoute(IEnumerable<AnimatorState> states, string from, bool exitTime)
+        {
+            AnimatorStateTransition transition = states.Single(state => state.name == from).transitions
+                .Single(item => item.destinationState != null && item.destinationState.name == "Victory");
+            Assert.That(transition.hasExitTime, Is.EqualTo(exitTime), from);
+            Assert.That(transition.duration, Is.EqualTo(0.15f).Within(0.001f), from);
+            Assert.That(transition.conditions.Any(condition =>
+                condition.parameter == "IsVictorious" && condition.mode == AnimatorConditionMode.If), Is.True, from);
+        }
+
+        private static void AssertTalkRoute(IEnumerable<AnimatorState> states, string from, string to,
+            AnimatorConditionMode mode)
+        {
+            AnimatorStateTransition transition = states.Single(state => state.name == from).transitions
+                .Single(item => item.destinationState != null && item.destinationState.name == to);
+            Assert.That(transition.duration, Is.EqualTo(0.15f).Within(0.001f), $"{from}->{to}");
+            Assert.That(transition.conditions.Any(condition =>
+                condition.parameter == "IsTalking" && condition.mode == mode), Is.True, $"{from}->{to}");
+            Assert.That(transition.conditions.Any(condition =>
+                condition.parameter == "IsVictorious" && condition.mode == AnimatorConditionMode.IfNot),
+                Is.True, $"{from}->{to}");
         }
 
         [Test]

@@ -908,7 +908,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7397803681052099938}
-  - component: {fileID: 6145072919819835063}
   m_Layer: 0
   m_Name: GuideModel
   m_TagString: Untagged
@@ -933,28 +932,6 @@ Transform:
   - {fileID: 1836987638125107881}
   m_Father: {fileID: 4811114278716140198}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &6145072919819835063
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3340152451998421694}
-  m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 7d17cf209fd29fbb3b339cab76031adb, type: 3}
-  m_Controller: {fileID: 0}
-  m_CullingMode: 1
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 1
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &3600809592786804396
 GameObject:
   m_ObjectHideFlags: 0
