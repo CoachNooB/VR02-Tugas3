@@ -5,6 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine.UI;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -22,9 +23,12 @@ namespace Tugas7.Tests
             Assert.That(NpcType, Is.Not.Null);
             Assert.That(NpcType.GetProperty("CanInteract"), Is.Not.Null);
             Assert.That(NpcType.GetProperty("IsTalking"), Is.Not.Null);
+            Assert.That(NpcType.GetProperty("IsVictorious"), Is.Not.Null);
             Assert.That(NpcType.GetMethod("SetPlayerNearby"), Is.Not.Null);
             Assert.That(NpcType.GetMethod("TryStartConversation"), Is.Not.Null);
             Assert.That(NpcType.GetMethod("CancelConversation"), Is.Not.Null);
+            Assert.That(NpcType.GetMethod("EnterVictory"), Is.Not.Null);
+            Assert.That(NpcType.GetMethod("UpdateFacing"), Is.Not.Null);
 
             var go = new GameObject("NPC");
             try
@@ -36,6 +40,73 @@ namespace Tugas7.Tests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void UpdateFacingTracksDistantPlayerOnHorizontalPlane()
+        {
+            var npcGo = new GameObject("NPC");
+            var playerGo = new GameObject("Player");
+            try
+            {
+                var npc = npcGo.AddComponent<T7_TutorialNPC>();
+                playerGo.transform.position = new Vector3(10f, 7f, 10f);
+                npc.Configure(null, null, playerGo.transform);
+
+                npc.UpdateFacing(1f);
+
+                Vector3 expected = playerGo.transform.position - npcGo.transform.position;
+                expected.y = 0f;
+                Assert.That(Vector3.Angle(npcGo.transform.forward, expected), Is.LessThan(0.01f));
+                Assert.That(npcGo.transform.forward.y, Is.EqualTo(0f).Within(0.0001f));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(npcGo);
+                UnityEngine.Object.DestroyImmediate(playerGo);
+            }
+        }
+
+        [Test]
+        public void VictoryIsIdempotentStickyAndPreventsConversation()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryVictoryTest.controller";
+            var go = new GameObject("NPC");
+            AnimatorController controller = null;
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsTalking", AnimatorControllerParameterType.Bool);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+                animator.runtimeAnimatorController = controller;
+                var npc = go.AddComponent<T7_TutorialNPC>();
+                npc.Configure(animator, null, null, 1f);
+                int finishedCount = 0;
+                npc.ConversationFinished += () => finishedCount++;
+                npc.SetPlayerNearby(true);
+                Assert.That(npc.TryStartConversation(), Is.True);
+
+                npc.EnterVictory();
+                npc.EnterVictory();
+                Assert.That(animator.GetBool("IsVictorious"), Is.True);
+                npc.CancelConversation();
+                npc.SetPlayerNearby(false);
+                go.SetActive(false);
+                go.SetActive(true);
+                npc.SetPlayerNearby(true);
+
+                Assert.That(npc.IsVictorious, Is.True);
+                Assert.That(npc.State, Is.EqualTo(T7_TutorialNPC.NPCState.Victorious));
+                Assert.That(npc.CanInteract, Is.False);
+                Assert.That(npc.TryStartConversation(), Is.False);
+                Assert.That(finishedCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
             }
         }
 

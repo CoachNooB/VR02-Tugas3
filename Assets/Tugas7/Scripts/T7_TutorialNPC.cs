@@ -7,7 +7,7 @@ namespace Tugas7
 {
     public sealed class T7_TutorialNPC : MonoBehaviour
     {
-        public enum NPCState { Unavailable, Waving, Talking }
+        public enum NPCState { Unavailable, Waving, Talking, Victorious }
 
         public static readonly string[] TutorialLines =
         {
@@ -28,8 +28,9 @@ namespace Tugas7
         [SerializeField] private string[] dialogueLines = TutorialLines;
 
         public NPCState State { get; private set; } = NPCState.Waving;
-        public bool CanInteract => playerNearby && !IsTalking && isActiveAndEnabled;
+        public bool CanInteract => playerNearby && !IsTalking && !IsVictorious && isActiveAndEnabled;
         public bool IsTalking => State == NPCState.Talking;
+        public bool IsVictorious => State == NPCState.Victorious;
         public IReadOnlyList<string> DialogueLines => dialogueLines;
 
         public event Action ConversationStarted;
@@ -44,11 +45,19 @@ namespace Tugas7
             player = targetPlayer;
             secondsPerLine = Mathf.Max(0.01f, lineDuration);
             SetTalkingAnimation(false);
+            SetVictoryAnimation(IsVictorious);
         }
 
         public void SetPlayerNearby(bool nearby)
         {
             playerNearby = nearby;
+            if (IsVictorious)
+            {
+                dialogue?.HidePrompt();
+                dialogue?.HideDialogue();
+                return;
+            }
+
             if (!nearby)
             {
                 CancelConversation();
@@ -87,6 +96,32 @@ namespace Tugas7
             return true;
         }
 
+        public void EnterVictory()
+        {
+            if (IsVictorious)
+            {
+                SetVictoryAnimation(true);
+                dialogue?.HidePrompt();
+                dialogue?.HideDialogue();
+                return;
+            }
+
+            bool wasTalking = IsTalking;
+            if (conversation != null)
+            {
+                StopCoroutine(conversation);
+                conversation = null;
+            }
+
+            State = NPCState.Victorious;
+            SetTalkingAnimation(false);
+            SetVictoryAnimation(true);
+            dialogue?.HidePrompt();
+            dialogue?.HideDialogue();
+            if (wasTalking)
+                ConversationFinished?.Invoke();
+        }
+
         public bool TryPlayHeadHit()
         {
             if (!isActiveAndEnabled)
@@ -108,7 +143,8 @@ namespace Tugas7
             }
 
             bool wasTalking = IsTalking;
-            State = NPCState.Waving;
+            if (!IsVictorious)
+                State = NPCState.Waving;
             SetTalkingAnimation(false);
             dialogue?.HideDialogue();
             if (wasTalking)
@@ -135,7 +171,12 @@ namespace Tugas7
 
         private void Update()
         {
-            if (!IsTalking || player == null)
+            UpdateFacing(Time.deltaTime);
+        }
+
+        public void UpdateFacing(float deltaTime)
+        {
+            if (player == null)
                 return;
 
             Vector3 direction = player.position - transform.position;
@@ -143,7 +184,7 @@ namespace Tugas7
             if (direction.sqrMagnitude < 0.001f)
                 return;
             Quaternion target = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * Time.deltaTime);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turnSpeed * deltaTime);
         }
 
         private void OnDisable() => CancelConversation();
@@ -152,6 +193,22 @@ namespace Tugas7
         {
             if (animator != null)
                 animator.SetBool("IsTalking", value);
+        }
+
+        private void SetVictoryAnimation(bool value)
+        {
+            if (animator == null)
+                return;
+
+            foreach (AnimatorControllerParameter parameter in animator.parameters)
+            {
+                if (parameter.name == "IsVictorious" &&
+                    parameter.type == AnimatorControllerParameterType.Bool)
+                {
+                    animator.SetBool("IsVictorious", value);
+                    return;
+                }
+            }
         }
     }
 }
