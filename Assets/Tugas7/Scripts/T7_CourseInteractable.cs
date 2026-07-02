@@ -80,8 +80,10 @@ namespace Tugas7
                         ? "Pressure plate active — gate open"
                         : "Place the yellow crate on the purple plate";
                 case CourseAction.FinishCourse:
+                    if (courseManager != null && courseManager.IsComplete)
+                        return courseManager.CompletionMessage;
                     return courseManager != null && courseManager.TryFinishCourse()
-                        ? $"Run complete — {T7_CourseManager.FormatTime(courseManager.ElapsedTime)}"
+                        ? courseManager.CompletionMessage
                         : "Finish locked — activate all checkpoints";
             }
             if (InteractionRequested != null)

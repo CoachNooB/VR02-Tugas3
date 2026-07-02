@@ -13,6 +13,7 @@ namespace Tugas7
         public bool IsRunning { get; private set; }
         public bool IsComplete { get; private set; }
         public float ElapsedTime => IsRunning ? Time.time - startTime : elapsedTime;
+        public string CompletionMessage { get; private set; }
         private float startTime;
         private float elapsedTime;
 
@@ -68,6 +69,7 @@ namespace Tugas7
             if (IsRunning) elapsedTime = Time.time - startTime;
             IsRunning = false;
             IsComplete = true;
+            CompletionMessage = $"Run complete — {FormatTime(elapsedTime)}";
             ui?.SetStatus($"COURSE COMPLETE — {FormatTime(elapsedTime)}");
             return true;
         }

@@ -84,5 +84,23 @@ namespace Tugas7.Tests
             Assert.That(manager.TryFinishCourse(), Is.True);
             Assert.That(manager.IsComplete, Is.True);
         }
+
+        [Test]
+        public void RepeatedFinishInteractionReturnsRecordedCompletion()
+        {
+            var beacon = root.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Finish Beacon", "Run complete", true);
+            beacon.ConfigureAction(T7_CourseInteractable.CourseAction.FinishCourse, manager);
+            manager.TryActivateCheckpoint(1, root.transform);
+            manager.TryActivateCheckpoint(2, root.transform);
+            manager.TryActivateCheckpoint(3, root.transform);
+
+            string first = beacon.Interact();
+            string second = beacon.Interact();
+
+            Assert.That(second, Is.EqualTo(first));
+            Assert.That(second, Does.StartWith("Run complete"));
+            Assert.That(manager.IsComplete, Is.True);
+        }
     }
 }
