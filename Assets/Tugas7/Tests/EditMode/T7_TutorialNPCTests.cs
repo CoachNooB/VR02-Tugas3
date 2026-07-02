@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -107,6 +108,119 @@ namespace Tugas7.Tests
             {
                 UnityEngine.Object.DestroyImmediate(go);
                 AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [UnityEngine.TestTools.UnityTest]
+        public IEnumerator VictoryAnimationIsRestoredAfterReactivation()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryReactivationTest.controller";
+            var go = new GameObject("NPC");
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+                animator.runtimeAnimatorController = controller;
+                var npc = go.AddComponent<T7_TutorialNPC>();
+                npc.Configure(animator, null, null);
+                npc.EnterVictory();
+
+                go.SetActive(false);
+                go.SetActive(true);
+                yield return null;
+
+                Assert.That(animator.GetBool("IsVictorious"), Is.True);
+                Assert.That(npc.IsVictorious, Is.True);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
+        public void ConfigureSynchronizesVictoryToReplacementAnimator()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryReplacementTest.controller";
+            var npcGo = new GameObject("NPC");
+            var animatorGo = new GameObject("ReplacementAnimator");
+            try
+            {
+                var npc = npcGo.AddComponent<T7_TutorialNPC>();
+                npc.EnterVictory();
+                var animator = animatorGo.AddComponent<Animator>();
+                AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+                animator.runtimeAnimatorController = controller;
+
+                npc.Configure(animator, null, null);
+
+                Assert.That(animator.GetBool("IsVictorious"), Is.True);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(npcGo);
+                UnityEngine.Object.DestroyImmediate(animatorGo);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
+        public void VictorySupportsAnimatorControllerWithoutVictoryParameter()
+        {
+            const string controllerPath = "Assets/Tugas7/Tests/EditMode/T7_TemporaryCompatibilityTest.controller";
+            var go = new GameObject("NPC");
+            try
+            {
+                var animator = go.AddComponent<Animator>();
+                AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.AddParameter("IsTalking", AnimatorControllerParameterType.Bool);
+                animator.runtimeAnimatorController = controller;
+                var npc = go.AddComponent<T7_TutorialNPC>();
+
+                Assert.DoesNotThrow(() => npc.Configure(animator, null, null));
+                Assert.DoesNotThrow(npc.EnterVictory);
+                Assert.That(npc.State, Is.EqualTo(T7_TutorialNPC.NPCState.Victorious));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset(controllerPath);
+            }
+        }
+
+        [Test]
+        public void VictoryHidesDialogueUiAndProximityCannotRestorePrompt()
+        {
+            var npcGo = new GameObject("NPC");
+            var dialogueGo = new GameObject("Dialogue");
+            var promptPanel = new GameObject("Prompt");
+            var dialoguePanel = new GameObject("DialoguePanel");
+            try
+            {
+                promptPanel.transform.SetParent(dialogueGo.transform);
+                dialoguePanel.transform.SetParent(dialogueGo.transform);
+                var dialogue = dialogueGo.AddComponent<T7_WorldSpaceDialogue>();
+                dialogue.Configure(null, promptPanel, null, dialoguePanel, null, null, null);
+                var npc = npcGo.AddComponent<T7_TutorialNPC>();
+                npc.Configure(null, dialogue, null, 1f);
+                npc.SetPlayerNearby(true);
+                Assert.That(dialogue.PromptVisible, Is.True);
+                Assert.That(npc.TryStartConversation(), Is.True);
+                Assert.That(dialogue.DialogueVisible, Is.True);
+
+                npc.EnterVictory();
+                npc.SetPlayerNearby(true);
+
+                Assert.That(dialogue.PromptVisible, Is.False);
+                Assert.That(dialogue.DialogueVisible, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(npcGo);
+                UnityEngine.Object.DestroyImmediate(dialogueGo);
             }
         }
 

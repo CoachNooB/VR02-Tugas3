@@ -44,6 +44,8 @@ namespace Tugas7
             dialogue = targetDialogue;
             player = targetPlayer;
             secondsPerLine = Mathf.Max(0.01f, lineDuration);
+            if (animator != null)
+                animator.keepAnimatorStateOnDisable = true;
             SetTalkingAnimation(false);
             SetVictoryAnimation(IsVictorious);
         }
@@ -188,6 +190,8 @@ namespace Tugas7
         }
 
         private void OnDisable() => CancelConversation();
+
+        private void OnEnable() => SetVictoryAnimation(IsVictorious);
 
         private void SetTalkingAnimation(bool value)
         {
