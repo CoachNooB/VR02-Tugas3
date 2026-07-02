@@ -333,12 +333,11 @@ namespace Tugas7.Editor
                 return controller;
             foreach (ChildAnimatorState state in machine.states)
                 machine.RemoveState(state.state);
-            if (!controller.parameters.Any(p => p.name == "IsTalking"))
-                controller.AddParameter("IsTalking", AnimatorControllerParameterType.Bool);
-            if (!controller.parameters.Any(p => p.name == "HeadHit"))
-                controller.AddParameter("HeadHit", AnimatorControllerParameterType.Trigger);
-            if (!controller.parameters.Any(p => p.name == "IsVictorious"))
-                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
+            foreach (AnimatorControllerParameter parameter in controller.parameters.ToArray())
+                controller.RemoveParameter(parameter);
+            EnsureParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool);
+            EnsureParameter(controller, "HeadHit", AnimatorControllerParameterType.Trigger);
+            EnsureParameter(controller, "IsVictorious", AnimatorControllerParameterType.Bool);
 
             AnimationClip waving = FindClip(WavingPath, "Waving");
             AnimationClip talking = FindClip(TalkingPath, "Talking");
@@ -369,6 +368,18 @@ namespace Tugas7.Editor
             return controller;
         }
 
+        private static void EnsureParameter(AnimatorController controller, string name,
+            AnimatorControllerParameterType type)
+        {
+            AnimatorControllerParameter[] matches = controller.parameters
+                .Where(parameter => parameter.name == name).ToArray();
+            if (matches.Length == 1 && matches[0].type == type)
+                return;
+            foreach (AnimatorControllerParameter parameter in matches)
+                controller.RemoveParameter(parameter);
+            controller.AddParameter(name, type);
+        }
+
         private static bool ControllerIsCurrent(AnimatorController controller, AnimatorStateMachine machine)
         {
             AnimatorState[] states = machine.states.Select(child => child.state).ToArray();
@@ -378,15 +389,10 @@ namespace Tugas7.Editor
             AnimatorState victory = states.FirstOrDefault(state => state.name == "Victory");
             return states.Length == 4 &&
                    waving != null && talking != null && headHit != null && victory != null &&
-                   controller.parameters.Any(parameter =>
-                       parameter.name == "IsTalking" &&
-                       parameter.type == AnimatorControllerParameterType.Bool) &&
-                   controller.parameters.Any(parameter =>
-                       parameter.name == "HeadHit" &&
-                       parameter.type == AnimatorControllerParameterType.Trigger) &&
-                   controller.parameters.Any(parameter =>
-                       parameter.name == "IsVictorious" &&
-                       parameter.type == AnimatorControllerParameterType.Bool) &&
+                   controller.parameters.Length == 3 &&
+                   HasSingleParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool) &&
+                   HasSingleParameter(controller, "HeadHit", AnimatorControllerParameterType.Trigger) &&
+                   HasSingleParameter(controller, "IsVictorious", AnimatorControllerParameterType.Bool) &&
                    machine.defaultState == waving &&
                    waving.motion == FindClip(WavingPath, "Waving") &&
                    talking.motion == FindClip(TalkingPath, "Talking") &&
@@ -400,27 +406,38 @@ namespace Tugas7.Editor
                    HasTransition(talking, waving, "IsTalking", AnimatorConditionMode.IfNot, false) &&
                    HasTransition(headHit, talking, "IsTalking", AnimatorConditionMode.If, true) &&
                    HasTransition(headHit, waving, "IsTalking", AnimatorConditionMode.IfNot, true) &&
-                   machine.anyStateTransitions.Any(transition =>
+                   machine.anyStateTransitions.Count(transition =>
                        transition.destinationState == headHit &&
                        !transition.hasExitTime &&
                        !transition.canTransitionToSelf &&
                        Mathf.Abs(transition.duration - 0.15f) < 0.001f &&
+                       transition.conditions.Length == 1 &&
                        transition.conditions.Any(condition =>
                            condition.parameter == "HeadHit" &&
-                           condition.mode == AnimatorConditionMode.If));
+                           condition.mode == AnimatorConditionMode.If)) == 1;
         }
 
+        private static bool HasSingleParameter(AnimatorController controller, string name,
+            AnimatorControllerParameterType type) =>
+            controller.parameters.Count(parameter => parameter.name == name && parameter.type == type) == 1 &&
+            controller.parameters.Count(parameter => parameter.name == name) == 1;
+
         private static bool HasTransition(AnimatorState from, AnimatorState to, string parameter,
-            AnimatorConditionMode mode, bool exitTime) =>
-            from.transitions.Any(transition =>
+            AnimatorConditionMode mode, bool exitTime)
+        {
+            int expectedConditionCount = parameter == "IsVictorious" ? 1 : 2;
+            return from.transitions.Count(transition =>
                 transition.destinationState == to &&
                 transition.hasExitTime == exitTime &&
+                (!exitTime || Mathf.Abs(transition.exitTime - 0.92f) < 0.001f) &&
                 Mathf.Abs(transition.duration - 0.15f) < 0.001f &&
+                transition.conditions.Length == expectedConditionCount &&
                 transition.conditions.Any(condition =>
                     condition.parameter == parameter && condition.mode == mode) &&
                 (parameter == "IsVictorious" || transition.conditions.Any(condition =>
                     condition.parameter == "IsVictorious" &&
-                    condition.mode == AnimatorConditionMode.IfNot)));
+                    condition.mode == AnimatorConditionMode.IfNot))) == 1;
+        }
 
         private static void AddTransition(AnimatorState from, AnimatorState to, bool value)
         {

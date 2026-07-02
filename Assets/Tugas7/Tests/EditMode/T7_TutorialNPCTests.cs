@@ -544,6 +544,70 @@ namespace Tugas7.Tests
                 transition.destinationState != null && transition.destinationState.name == "Victory"), Is.True);
         }
 
+        [Test]
+        public void PrepareAllRepairsWrongTypedAndDuplicateNpcParametersIdempotently()
+        {
+            const string path = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            prepare.Invoke(null, null);
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            foreach (AnimatorControllerParameter parameter in controller.parameters.ToArray())
+            {
+                controller.RemoveParameter(parameter);
+            }
+            controller.AddParameter("IsTalking", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("HeadHit", AnimatorControllerParameterType.Bool);
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+
+            prepare.Invoke(null, null);
+
+            AssertRequiredParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool);
+            AssertRequiredParameter(controller, "IsVictorious", AnimatorControllerParameterType.Bool);
+            AssertRequiredParameter(controller, "HeadHit", AnimatorControllerParameterType.Trigger);
+            Assert.That(controller.parameters, Has.Length.EqualTo(3));
+            string repaired = File.ReadAllText(path);
+            prepare.Invoke(null, null);
+            Assert.That(File.ReadAllText(path), Is.EqualTo(repaired));
+        }
+
+        [Test]
+        public void PrepareAllRepairsRequiredTransitionWithExtraCondition()
+        {
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            prepare.Invoke(null, null);
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                "Assets/Tugas7/Animations/T7_TutorialNPC.controller");
+            AnimatorState waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                .Single(state => state.name == "Waving");
+            AnimatorStateTransition victoryRoute = waving.transitions.Single(transition =>
+                transition.destinationState != null && transition.destinationState.name == "Victory");
+            victoryRoute.AddCondition(AnimatorConditionMode.If, 0f, "IsTalking");
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+
+            prepare.Invoke(null, null);
+
+            waving = controller.layers[0].stateMachine.states.Select(child => child.state)
+                .Single(state => state.name == "Waving");
+            victoryRoute = waving.transitions.Single(transition =>
+                transition.destinationState != null && transition.destinationState.name == "Victory");
+            Assert.That(victoryRoute.conditions, Has.Length.EqualTo(1));
+            Assert.That(victoryRoute.conditions[0].parameter, Is.EqualTo("IsVictorious"));
+        }
+
+        private static void AssertRequiredParameter(AnimatorController controller, string name,
+            AnimatorControllerParameterType type)
+        {
+            AnimatorControllerParameter[] matches = controller.parameters
+                .Where(parameter => parameter.name == name).ToArray();
+            Assert.That(matches, Has.Length.EqualTo(1), name);
+            Assert.That(matches[0].type, Is.EqualTo(type), name);
+        }
+
         private static void AssertVictoryRoute(IEnumerable<AnimatorState> states, string from, bool exitTime)
         {
             AnimatorStateTransition transition = states.Single(state => state.name == from).transitions
