@@ -39,5 +39,12 @@ namespace Tugas7
             if (target != null && Input.GetKeyDown(KeyCode.E))
                 ui?.SetStatus(target.Interact());
         }
+
+        private void OnDisable()
+        {
+            target?.SetHighlighted(false);
+            target = null;
+            ui?.SetInteractionPrompt(string.Empty);
+        }
     }
 }

@@ -142,9 +142,122 @@ namespace Tugas7.Tests
 
             beacon.SetHighlighted(false);
             renderer.GetPropertyBlock(properties);
+            Assert.That(properties.HasProperty(Shader.PropertyToID("_EmissionColor")), Is.False);
+            Assert.That(renderer.sharedMaterial.GetColor("_EmissionColor"), Is.EqualTo(originalEmission));
+            Object.DestroyImmediate(material);
+        }
+
+        [Test]
+        public void HighlightRestoresPreExistingEmissionOverride()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            var material = new Material(shader);
+            var rendererObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rendererObject.transform.SetParent(root.transform);
+            var renderer = rendererObject.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            var overrideEmission = new Color(0.25f, 0.5f, 0.75f, 1f);
+            var properties = new MaterialPropertyBlock();
+            properties.SetColor("_EmissionColor", overrideEmission);
+            renderer.SetPropertyBlock(properties);
+            var beacon = root.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Beacon", "Done", false, renderer);
+
+            beacon.SetHighlighted(true);
+            beacon.SetHighlighted(false);
+
+            renderer.GetPropertyBlock(properties);
+            Assert.That(Vector4.Distance(properties.GetColor("_EmissionColor"), overrideEmission),
+                Is.LessThan(0.0001f));
+            Object.DestroyImmediate(material);
+        }
+
+        [Test]
+        public void HighlightPreservesUnrelatedPropertyBlockValues()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            var material = new Material(shader);
+            var rendererObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rendererObject.transform.SetParent(root.transform);
+            var renderer = rendererObject.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            var properties = new MaterialPropertyBlock();
+            properties.SetFloat("_Smoothness", 0.37f);
+            renderer.SetPropertyBlock(properties);
+            var beacon = root.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Beacon", "Done", false, renderer);
+
+            beacon.SetHighlighted(true);
+            renderer.GetPropertyBlock(properties);
+            Assert.That(properties.GetFloat("_Smoothness"), Is.EqualTo(0.37f));
+            beacon.SetHighlighted(false);
+            renderer.GetPropertyBlock(properties);
+            Assert.That(properties.GetFloat("_Smoothness"), Is.EqualTo(0.37f));
+            Object.DestroyImmediate(material);
+        }
+
+        [Test]
+        public void DisablingHighlightedBeaconRestoresPropertyBlock()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            var material = new Material(shader);
+            var rendererObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rendererObject.transform.SetParent(root.transform);
+            var renderer = rendererObject.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            var originalEmission = new Color(0.2f, 0.3f, 0.4f, 1f);
+            var properties = new MaterialPropertyBlock();
+            properties.SetColor("_EmissionColor", originalEmission);
+            renderer.SetPropertyBlock(properties);
+            var beacon = root.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Beacon", "Done", false, renderer);
+
+            beacon.SetHighlighted(true);
+            InvokePrivate(beacon, "OnDisable");
+
+            renderer.GetPropertyBlock(properties);
             Assert.That(Vector4.Distance(properties.GetColor("_EmissionColor"), originalEmission),
                 Is.LessThan(0.0001f));
             Object.DestroyImmediate(material);
+        }
+
+        [Test]
+        public void DisablingInteractorClearsHighlightAndAllowsReacquisition()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            var material = new Material(shader);
+            var cameraObject = new GameObject("Camera");
+            cameraObject.transform.SetParent(root.transform);
+            var camera = cameraObject.AddComponent<Camera>();
+            var rendererObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rendererObject.transform.SetParent(root.transform);
+            rendererObject.transform.position = Vector3.forward * 2f;
+            var renderer = rendererObject.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            var beacon = rendererObject.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Beacon", "Done", false, renderer);
+            beacon.ConfigureHighlight(Color.yellow, 4f);
+            var interactor = root.AddComponent<T7_RaycastInteractor>();
+            interactor.Configure(camera, null);
+            var properties = new MaterialPropertyBlock();
+            Physics.SyncTransforms();
+
+            InvokePrivate(interactor, "Update");
+            InvokePrivate(interactor, "OnDisable");
+            renderer.GetPropertyBlock(properties);
+            Assert.That(properties.HasProperty(Shader.PropertyToID("_EmissionColor")), Is.False);
+
+            InvokePrivate(interactor, "Update");
+            renderer.GetPropertyBlock(properties);
+            Assert.That(properties.HasProperty(Shader.PropertyToID("_EmissionColor")), Is.True);
+            Object.DestroyImmediate(material);
+        }
+
+        private static void InvokePrivate(object target, string methodName)
+        {
+            target.GetType().GetMethod(methodName,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(target, null);
         }
     }
 }

@@ -21,7 +21,8 @@ namespace Tugas7
         [SerializeField] private T7_PressurePlate pressurePlate;
         private bool unlocked;
         private MaterialPropertyBlock properties;
-        private Color originalEmission;
+        private MaterialPropertyBlock propertiesBeforeHighlight;
+        private bool isHighlighted;
         public string DisplayName => displayName;
         public bool IsUnlocked => unlocked ||
             (courseAction == CourseAction.FinishCourse && courseManager != null &&
@@ -33,7 +34,6 @@ namespace Tugas7
             unlocked = !startsLocked;
             if (targetRenderer == null) targetRenderer = GetComponentInChildren<Renderer>();
             properties = new MaterialPropertyBlock();
-            CacheOriginalEmission();
         }
 
         public void Configure(string name, string message, bool locked = false, Renderer renderer = null)
@@ -43,10 +43,7 @@ namespace Tugas7
             startsLocked = locked;
             unlocked = !locked;
             if (renderer != null)
-            {
                 targetRenderer = renderer;
-                CacheOriginalEmission();
-            }
         }
 
         public void ConfigureHighlight(Color color, float intensity)
@@ -69,19 +66,24 @@ namespace Tugas7
         public void SetHighlighted(bool highlighted)
         {
             if (targetRenderer == null) return;
+            if (highlighted == isHighlighted) return;
             properties ??= new MaterialPropertyBlock();
-            targetRenderer.GetPropertyBlock(properties);
-            properties.SetColor("_EmissionColor",
-                highlighted ? glowColor * highlightIntensity : originalEmission);
-            targetRenderer.SetPropertyBlock(properties);
+            propertiesBeforeHighlight ??= new MaterialPropertyBlock();
+            if (highlighted)
+            {
+                targetRenderer.GetPropertyBlock(propertiesBeforeHighlight);
+                targetRenderer.GetPropertyBlock(properties);
+                properties.SetColor("_EmissionColor", glowColor * highlightIntensity);
+                targetRenderer.SetPropertyBlock(properties);
+            }
+            else
+            {
+                targetRenderer.SetPropertyBlock(propertiesBeforeHighlight);
+            }
+            isHighlighted = highlighted;
         }
 
-        private void CacheOriginalEmission()
-        {
-            if (targetRenderer != null && targetRenderer.sharedMaterial != null &&
-                targetRenderer.sharedMaterial.HasProperty("_EmissionColor"))
-                originalEmission = targetRenderer.sharedMaterial.GetColor("_EmissionColor");
-        }
+        private void OnDisable() => SetHighlighted(false);
 
         public string Interact()
         {
