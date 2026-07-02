@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Tugas7
@@ -24,10 +25,12 @@ namespace Tugas7
 
         private Coroutine conversation;
         private bool playerNearby;
+        private string[] dialogueLines = TutorialLines;
 
         public NPCState State { get; private set; } = NPCState.Waving;
         public bool CanInteract => playerNearby && !IsTalking && isActiveAndEnabled;
         public bool IsTalking => State == NPCState.Talking;
+        public IReadOnlyList<string> DialogueLines => dialogueLines;
 
         public event Action ConversationStarted;
         public event Action<int, string> LineChanged;
@@ -55,6 +58,20 @@ namespace Tugas7
 
             if (!IsTalking)
                 dialogue?.ShowPrompt("Press E — Talk to Guide");
+        }
+
+        public void ConfigureDialogue(IReadOnlyList<string> lines)
+        {
+            if (lines == null || lines.Count == 0)
+            {
+                dialogueLines = TutorialLines;
+                return;
+            }
+            var configured = new List<string>(lines.Count);
+            for (int i = 0; i < lines.Count; i++)
+                if (!string.IsNullOrWhiteSpace(lines[i]))
+                    configured.Add(lines[i]);
+            dialogueLines = configured.Count == 0 ? TutorialLines : configured.ToArray();
         }
 
         public bool TryStartConversation()
@@ -88,10 +105,10 @@ namespace Tugas7
 
         private IEnumerator ConversationRoutine()
         {
-            for (int i = 0; i < TutorialLines.Length; i++)
+            for (int i = 0; i < dialogueLines.Length; i++)
             {
-                dialogue?.ShowDialogue("FACILITY GUIDE", TutorialLines[i]);
-                LineChanged?.Invoke(i, TutorialLines[i]);
+                dialogue?.ShowDialogue("FACILITY GUIDE", dialogueLines[i]);
+                LineChanged?.Invoke(i, dialogueLines[i]);
                 yield return new WaitForSeconds(secondsPerLine);
             }
 

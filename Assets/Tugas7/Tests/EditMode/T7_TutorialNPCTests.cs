@@ -76,6 +76,29 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void DialogueCanBeConfiguredPerNpcInstance()
+        {
+            var go = new GameObject("SectionGuide");
+            try
+            {
+                Component npc = go.AddComponent(NpcType);
+                string[] sectionLine = { "Section-specific line." };
+                MethodInfo configure = NpcType.GetMethod("ConfigureDialogue");
+                PropertyInfo lines = NpcType.GetProperty("DialogueLines");
+
+                Assert.That(configure, Is.Not.Null);
+                Assert.That(lines, Is.Not.Null);
+                configure.Invoke(npc, new object[] { sectionLine });
+
+                Assert.That((IReadOnlyList<string>)lines.GetValue(npc), Is.EqualTo(sectionLine));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
         public void TutorialPrefabUsesOnlyWorldSpaceCanvases()
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
