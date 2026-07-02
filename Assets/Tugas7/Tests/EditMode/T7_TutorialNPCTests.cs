@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEngine.UI;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+using System.IO;
 
 namespace Tugas7.Tests
 {
@@ -188,6 +189,22 @@ namespace Tugas7.Tests
             };
             foreach (string file in required)
                 StringAssert.Contains(file, attribution.text, file);
+        }
+
+        [Test]
+        public void RepeatedAssetPreparationPreservesAnimatorController()
+        {
+            const string path = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            Assert.That(prepare, Is.Not.Null);
+
+            prepare.Invoke(null, null);
+            string first = File.ReadAllText(path);
+            prepare.Invoke(null, null);
+            string second = File.ReadAllText(path);
+
+            Assert.That(second, Is.EqualTo(first));
         }
     }
 }

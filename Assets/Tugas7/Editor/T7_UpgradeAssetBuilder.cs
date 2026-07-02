@@ -198,6 +198,8 @@ namespace Tugas7.Editor
                 controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             AnimatorControllerLayer layer = controller.layers[0];
             AnimatorStateMachine machine = layer.stateMachine;
+            if (ControllerIsCurrent(controller, machine))
+                return controller;
             foreach (ChildAnimatorState state in machine.states)
                 machine.RemoveState(state.state);
             if (!controller.parameters.Any(p => p.name == "IsTalking"))
@@ -226,6 +228,21 @@ namespace Tugas7.Editor
             AddHeadHitExit(headHitState, wavingState, false);
             EditorUtility.SetDirty(controller);
             return controller;
+        }
+
+        private static bool ControllerIsCurrent(AnimatorController controller, AnimatorStateMachine machine)
+        {
+            string[] stateNames = machine.states.Select(child => child.state.name).ToArray();
+            return stateNames.Length == 3 &&
+                   stateNames.Contains("Waving") &&
+                   stateNames.Contains("Talking") &&
+                   stateNames.Contains("Head Hit") &&
+                   controller.parameters.Any(parameter =>
+                       parameter.name == "IsTalking" &&
+                       parameter.type == AnimatorControllerParameterType.Bool) &&
+                   controller.parameters.Any(parameter =>
+                       parameter.name == "HeadHit" &&
+                       parameter.type == AnimatorControllerParameterType.Trigger);
         }
 
         private static void AddTransition(AnimatorState from, AnimatorState to, bool value)
