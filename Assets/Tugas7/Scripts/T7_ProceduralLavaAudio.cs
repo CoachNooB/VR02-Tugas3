@@ -14,8 +14,11 @@ namespace Tugas7
         private static readonly Queue<ClipKey> CacheOrder = new();
         private static readonly List<AudioClip> PendingRetirement = new();
 
+        [SerializeField] private AudioClip ambienceClip;
         [SerializeField] private List<AudioSource> targets = new();
+        private bool missingClipWarningLogged;
 
+        public AudioClip AmbienceClip => ambienceClip;
         public int PlaybackRequestCount { get; private set; }
         internal static int CachedClipCount => ClipCache.Count;
         internal static int PendingRetirementCount => PendingRetirement.Count;
@@ -79,7 +82,14 @@ namespace Tugas7
 
         public void Configure(IReadOnlyList<AudioSource> newTargets)
         {
+            Configure(CreateClip(), newTargets);
+        }
+
+        public void Configure(AudioClip clip, IReadOnlyList<AudioSource> newTargets)
+        {
             PlaybackRequestCount = 0;
+            ambienceClip = clip;
+            missingClipWarningLogged = false;
             targets.Clear();
             if (newTargets != null)
                 for (int i = 0; i < newTargets.Count; i++)
@@ -99,7 +109,12 @@ namespace Tugas7
 
         private void ApplyConfiguration(bool assignClip)
         {
-            AudioClip clip = assignClip ? CreateClip() : null;
+            AudioClip clip = assignClip ? ambienceClip : null;
+            if (assignClip && clip == null && targets.Count > 0 && !missingClipWarningLogged)
+            {
+                Debug.LogWarning("Lava ambience clip is unavailable.", this);
+                missingClipWarningLogged = true;
+            }
             for (int i = 0; i < targets.Count; i++)
             {
                 AudioSource source = targets[i];

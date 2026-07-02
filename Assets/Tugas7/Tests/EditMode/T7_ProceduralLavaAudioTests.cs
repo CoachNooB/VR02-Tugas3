@@ -167,12 +167,14 @@ namespace Tugas7.Tests
             var a = new GameObject("A").AddComponent<AudioSource>();
             var b = new GameObject("B").AddComponent<AudioSource>();
             var targets = new[] { a, b };
-            controller.Configure(targets);
+            AudioClip imported = AudioClip.Create("ImportedLava", 8000, 1, 8000, false);
+            controller.Configure(imported, targets);
             targets[0] = null;
 
+            Assert.That(controller.AmbienceClip, Is.SameAs(imported));
             foreach (AudioSource source in new[] { a, b })
             {
-                Assert.That(source.clip, Is.Not.Null);
+                Assert.That(source.clip, Is.SameAs(imported));
                 Assert.That(source.clip, Is.SameAs(a.clip));
                 Assert.That(source.loop, Is.True);
                 Assert.That(source.playOnAwake, Is.False);
@@ -188,6 +190,7 @@ namespace Tugas7.Tests
             Object.DestroyImmediate(root);
             Object.DestroyImmediate(a.gameObject);
             Object.DestroyImmediate(b.gameObject);
+            Object.DestroyImmediate(imported);
         }
 
         [Test]
@@ -213,6 +216,10 @@ namespace Tugas7.Tests
                     .OrderBy(source => source.name)
                     .ToArray();
                 Assert.That(sources, Has.Length.EqualTo(4));
+                AudioClip imported = AssetDatabase.LoadAssetAtPath<AudioClip>(
+                    "Assets/Tugas7/Audio/T7_LavaAmbience.ogg");
+                Assert.That(imported, Is.Not.Null);
+                Assert.That(controllers[0].AmbienceClip, Is.SameAs(imported));
                 Vector3[] expectedPoolCenters =
                 {
                     new(0f, 0.2f, 29f),
@@ -224,7 +231,7 @@ namespace Tugas7.Tests
                     Is.EqualTo(expectedPoolCenters));
                 Assert.That(sources.Select(source => source.transform.position),
                     Is.EqualTo(expectedPoolCenters));
-                Assert.That(sources.All(source => source.clip == null && source.loop &&
+                Assert.That(sources.All(source => source.clip == imported && source.loop &&
                     !source.playOnAwake && source.spatialBlend == 1f &&
                     Mathf.Approximately(source.minDistance, 4f) &&
                     Mathf.Approximately(source.maxDistance, 22f) &&
@@ -235,6 +242,8 @@ namespace Tugas7.Tests
                     source.GetComponent<Renderer>() == null), Is.True);
                 var serialized = new SerializedObject(controllers[0]);
                 Assert.That(serialized.FindProperty("targets").arraySize, Is.EqualTo(4));
+                Assert.That(serialized.FindProperty("ambienceClip").objectReferenceValue,
+                    Is.SameAs(imported));
             }
             finally
             {

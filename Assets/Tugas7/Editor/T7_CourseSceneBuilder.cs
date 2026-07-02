@@ -111,6 +111,8 @@ namespace Tugas7.Editor
         private static void BuildLavaAudio(Transform parent)
         {
             Transform audioGroup = Group("AmbientLavaAudio", parent);
+            AudioClip ambience = AssetDatabase.LoadAssetAtPath<AudioClip>(
+                "Assets/Tugas7/Audio/T7_LavaAmbience.ogg");
             var sources = new List<AudioSource>();
             Vector3[] positions =
             {
@@ -128,9 +130,7 @@ namespace Tugas7.Editor
             }
 
             var controller = audioGroup.gameObject.AddComponent<T7_ProceduralLavaAudio>();
-            controller.Configure(sources);
-            for (int i = 0; i < sources.Count; i++)
-                sources[i].clip = null;
+            controller.Configure(ambience, sources);
         }
 
         private static GameObject CreatePlayer(Transform parent, T7_CourseManager manager,

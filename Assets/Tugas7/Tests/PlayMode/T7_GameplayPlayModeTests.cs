@@ -91,11 +91,13 @@ namespace Tugas7.Tests
             first.transform.SetParent(root.transform);
             second.transform.SetParent(root.transform);
             var controller = root.AddComponent<T7_ProceduralLavaAudio>();
+            AudioClip imported = AudioClip.Create("ImportedLava", 8000, 1, 8000, false);
             root.SetActive(false);
 
-            controller.Configure(new[] { first, second });
+            controller.Configure(imported, new[] { first, second });
 
-            Assert.That(first.clip, Is.Not.Null);
+            Assert.That(controller.AmbienceClip, Is.SameAs(imported));
+            Assert.That(first.clip, Is.SameAs(imported));
             Assert.That(second.clip, Is.SameAs(first.clip));
             Assert.That(controller.PlaybackRequestCount, Is.Zero);
 
@@ -104,7 +106,7 @@ namespace Tugas7.Tests
 
             foreach (AudioSource source in new[] { first, second })
             {
-                Assert.That(source.clip, Is.SameAs(T7_ProceduralLavaAudio.CreateClip()));
+                Assert.That(source.clip, Is.SameAs(imported));
                 Assert.That(source.loop, Is.True);
                 Assert.That(source.spatialBlend, Is.EqualTo(1f));
                 Assert.That(source.playOnAwake, Is.False);
@@ -117,6 +119,8 @@ namespace Tugas7.Tests
             Assert.That(controller.PlaybackRequestCount, Is.EqualTo(2));
             LogAssert.NoUnexpectedReceived();
             Object.Destroy(root);
+            yield return null;
+            Object.Destroy(imported);
             yield return null;
         }
     }
