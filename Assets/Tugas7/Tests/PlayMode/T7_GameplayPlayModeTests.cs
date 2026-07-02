@@ -86,21 +86,35 @@ namespace Tugas7.Tests
         {
             var root = new GameObject("LavaAudioTest");
             root.AddComponent<AudioListener>();
-            var source = new GameObject("LavaEmitter").AddComponent<AudioSource>();
-            source.transform.SetParent(root.transform);
+            var first = new GameObject("LavaEmitterA").AddComponent<AudioSource>();
+            var second = new GameObject("LavaEmitterB").AddComponent<AudioSource>();
+            first.transform.SetParent(root.transform);
+            second.transform.SetParent(root.transform);
             var controller = root.AddComponent<T7_ProceduralLavaAudio>();
             root.SetActive(false);
 
-            controller.Configure(new[] { source });
+            controller.Configure(new[] { first, second });
 
-            Assert.That(source.clip, Is.Not.Null);
-            Assert.That(source.isPlaying, Is.False);
+            Assert.That(first.clip, Is.Not.Null);
+            Assert.That(second.clip, Is.SameAs(first.clip));
+            Assert.That(controller.PlaybackRequestCount, Is.Zero);
 
             root.SetActive(true);
             yield return null;
 
-            Assert.That(source.clip, Is.SameAs(T7_ProceduralLavaAudio.CreateClip()));
-            Assert.That(source.isPlaying, Is.True);
+            foreach (AudioSource source in new[] { first, second })
+            {
+                Assert.That(source.clip, Is.SameAs(T7_ProceduralLavaAudio.CreateClip()));
+                Assert.That(source.loop, Is.True);
+                Assert.That(source.spatialBlend, Is.EqualTo(1f));
+                Assert.That(source.playOnAwake, Is.False);
+                Assert.That(source.volume, Is.EqualTo(0.12f).Within(0.001f));
+                Assert.That(source.minDistance, Is.EqualTo(4f));
+                Assert.That(source.maxDistance, Is.EqualTo(22f));
+                Assert.That(source.rolloffMode, Is.EqualTo(AudioRolloffMode.Logarithmic));
+                Assert.That(source.dopplerLevel, Is.Zero);
+            }
+            Assert.That(controller.PlaybackRequestCount, Is.EqualTo(2));
             LogAssert.NoUnexpectedReceived();
             Object.Destroy(root);
         }

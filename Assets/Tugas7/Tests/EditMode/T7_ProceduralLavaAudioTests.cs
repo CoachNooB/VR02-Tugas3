@@ -32,9 +32,16 @@ namespace Tugas7.Tests
         [Test]
         public void CreateClipClampsInvalidArgumentsPredictably()
         {
-            AudioClip clip = T7_ProceduralLavaAudio.CreateClip(0, -2f, 1);
-            Assert.That(clip.frequency, Is.EqualTo(8000));
-            Assert.That(clip.samples, Is.EqualTo(800));
+            AudioClip negative = T7_ProceduralLavaAudio.CreateClip(0, -2f, 1);
+            AudioClip zero = T7_ProceduralLavaAudio.CreateClip(0, 0f, 2);
+            AudioClip notANumber = T7_ProceduralLavaAudio.CreateClip(22050, float.NaN, 3);
+            AudioClip positiveInfinity = T7_ProceduralLavaAudio.CreateClip(22050, float.PositiveInfinity, 4);
+
+            Assert.That(negative.frequency, Is.EqualTo(8000));
+            Assert.That(negative.samples, Is.EqualTo(800));
+            Assert.That(zero.samples, Is.EqualTo(800));
+            Assert.That(notANumber.samples, Is.EqualTo(88200));
+            Assert.That(positiveInfinity.samples, Is.EqualTo(88200));
         }
 
         [Test]
@@ -45,6 +52,28 @@ namespace Tugas7.Tests
 
             Assert.That(longer.samples, Is.Not.EqualTo(shorter.samples));
             Assert.That(longer, Is.Not.SameAs(shorter));
+        }
+
+        [Test]
+        public void CacheSharesExactKeysAndRegeneratesDeterministicallyAfterFifoEviction()
+        {
+            const int sampleRate = 8001;
+            const float duration = 0.2f;
+            const int firstSeed = 41000;
+            AudioClip first = T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, firstSeed);
+            AudioClip shared = T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, firstSeed);
+            var originalSamples = new float[first.samples];
+            Assert.That(first.GetData(originalSamples, 0), Is.True);
+            Assert.That(shared, Is.SameAs(first));
+
+            for (int seed = firstSeed + 1; seed <= firstSeed + 8; seed++)
+                T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, seed);
+
+            AudioClip regenerated = T7_ProceduralLavaAudio.CreateClip(sampleRate, duration, firstSeed);
+            var regeneratedSamples = new float[regenerated.samples];
+            Assert.That(regenerated.GetData(regeneratedSamples, 0), Is.True);
+            Assert.That(ReferenceEquals(regenerated, first), Is.False);
+            Assert.That(regeneratedSamples, Is.EqualTo(originalSamples));
         }
 
         [Test]
@@ -85,15 +114,33 @@ namespace Tugas7.Tests
                 "Assets/Scenes/T6_T7_MainScene.unity", OpenSceneMode.Additive);
             try
             {
-                GameObject gauntlet = scene.GetRootGameObjects().Single(root => root.name == "T7_GauntletRoot");
-                T7_ProceduralLavaAudio[] controllers =
-                    gauntlet.GetComponentsInChildren<T7_ProceduralLavaAudio>(true);
+                GameObject[] roots = scene.GetRootGameObjects();
+                T7_ProceduralLavaAudio[] controllers = roots
+                    .SelectMany(root => root.GetComponentsInChildren<T7_ProceduralLavaAudio>(true))
+                    .ToArray();
+                Transform[] namedGroups = roots
+                    .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+                    .Where(item => item.name == "AmbientLavaAudio")
+                    .ToArray();
                 Assert.That(controllers, Has.Length.EqualTo(1));
+                Assert.That(namedGroups, Has.Length.EqualTo(1));
+                Assert.That(namedGroups[0], Is.SameAs(controllers[0].transform));
                 Assert.That(controllers[0].name, Is.EqualTo("AmbientLavaAudio"));
-                AudioSource[] sources = controllers[0].GetComponentsInChildren<AudioSource>(true);
+                AudioSource[] sources = controllers[0].GetComponentsInChildren<AudioSource>(true)
+                    .OrderBy(source => source.name)
+                    .ToArray();
                 Assert.That(sources, Has.Length.EqualTo(4));
-                Assert.That(sources.Select(source => source.transform.position.z),
-                    Is.EquivalentTo(new[] { 29f, 112f, 160f, 187f }));
+                Vector3[] expectedPoolCenters =
+                {
+                    new(0f, 0.2f, 29f),
+                    new(0f, 0.2f, 112f),
+                    new(0f, 0.2f, 160f),
+                    new(0f, 0.2f, 187f)
+                };
+                Assert.That(sources.Select(source => source.transform.localPosition),
+                    Is.EqualTo(expectedPoolCenters));
+                Assert.That(sources.Select(source => source.transform.position),
+                    Is.EqualTo(expectedPoolCenters));
                 Assert.That(sources.All(source => source.clip == null && source.loop &&
                     !source.playOnAwake && source.spatialBlend == 1f &&
                     Mathf.Approximately(source.minDistance, 4f) &&

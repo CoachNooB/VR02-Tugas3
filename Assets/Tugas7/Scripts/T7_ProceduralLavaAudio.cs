@@ -12,9 +12,13 @@ namespace Tugas7
 
         [SerializeField] private List<AudioSource> targets = new();
 
+        public int PlaybackRequestCount { get; private set; }
+
         public static AudioClip CreateClip(int sampleRate = 22050, float duration = 4f, int seed = 73421)
         {
             sampleRate = Mathf.Clamp(sampleRate, 8000, 48000);
+            if (float.IsNaN(duration) || float.IsInfinity(duration))
+                duration = 4f;
             duration = Mathf.Clamp(duration, 0.1f, 30f);
             int sampleCount = Mathf.Max(1, Mathf.RoundToInt(sampleRate * duration));
             var key = new ClipKey(sampleRate, sampleCount, seed);
@@ -102,7 +106,10 @@ namespace Tugas7
                 source.dopplerLevel = 0f;
                 if (Application.isPlaying && source.isActiveAndEnabled &&
                     source.clip != null && !source.isPlaying)
+                {
+                    PlaybackRequestCount++;
                     source.Play();
+                }
             }
         }
 
