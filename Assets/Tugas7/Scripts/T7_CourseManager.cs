@@ -18,6 +18,7 @@ namespace Tugas7
         private float elapsedTime;
 
         public event Action<int, Transform> CheckpointActivated;
+        public event Action CourseCompleted;
 
         private void Awake()
         {
@@ -71,6 +72,7 @@ namespace Tugas7
             IsComplete = true;
             CompletionMessage = $"Run complete — {FormatTime(elapsedTime)}";
             ui?.SetStatus($"COURSE COMPLETE — {FormatTime(elapsedTime)}");
+            CourseCompleted?.Invoke();
             return true;
         }
 

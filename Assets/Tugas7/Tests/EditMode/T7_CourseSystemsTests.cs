@@ -102,5 +102,49 @@ namespace Tugas7.Tests
             Assert.That(second, Does.StartWith("Run complete"));
             Assert.That(manager.IsComplete, Is.True);
         }
+
+        [Test]
+        public void CourseCompletionIsSignalledExactlyOnce()
+        {
+            int completedCount = 0;
+            manager.CourseCompleted += () => completedCount++;
+            manager.TryActivateCheckpoint(1, root.transform);
+            manager.TryActivateCheckpoint(2, root.transform);
+            manager.TryActivateCheckpoint(3, root.transform);
+
+            Assert.That(manager.TryFinishCourse(), Is.True);
+            Assert.That(manager.TryFinishCourse(), Is.False);
+            Assert.That(completedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void HighlightUsesConfiguredIntensityAndRestoresOriginalEmission()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            Assert.That(shader, Is.Not.Null);
+            var material = new Material(shader);
+            var originalEmission = new Color(0.1f, 0.2f, 0.3f, 1f);
+            material.SetColor("_EmissionColor", originalEmission);
+            var rendererObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rendererObject.transform.SetParent(root.transform);
+            var renderer = rendererObject.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            var beacon = root.AddComponent<T7_CourseInteractable>();
+            beacon.Configure("Finish Beacon", "Run complete", false, renderer);
+            var goldGlow = new Color(1f, 0.5f, 0.1f, 1f);
+            beacon.ConfigureHighlight(goldGlow, 4f);
+            var properties = new MaterialPropertyBlock();
+
+            beacon.SetHighlighted(true);
+            renderer.GetPropertyBlock(properties);
+            Assert.That(Vector4.Distance(properties.GetColor("_EmissionColor"), goldGlow * 4f),
+                Is.LessThan(0.0001f));
+
+            beacon.SetHighlighted(false);
+            renderer.GetPropertyBlock(properties);
+            Assert.That(Vector4.Distance(properties.GetColor("_EmissionColor"), originalEmission),
+                Is.LessThan(0.0001f));
+            Object.DestroyImmediate(material);
+        }
     }
 }

@@ -13,6 +13,7 @@ namespace Tugas7
         [SerializeField] private bool startsLocked;
         [SerializeField] private Renderer targetRenderer;
         [SerializeField] private Color glowColor = Color.cyan;
+        [SerializeField, Min(1f)] private float highlightIntensity = 4f;
         [SerializeField] private UnityEvent onInteract;
         [SerializeField] private CourseAction courseAction;
         [SerializeField] private T7_CourseManager courseManager;
@@ -32,9 +33,7 @@ namespace Tugas7
             unlocked = !startsLocked;
             if (targetRenderer == null) targetRenderer = GetComponentInChildren<Renderer>();
             properties = new MaterialPropertyBlock();
-            if (targetRenderer != null && targetRenderer.sharedMaterial != null &&
-                targetRenderer.sharedMaterial.HasProperty("_EmissionColor"))
-                originalEmission = targetRenderer.sharedMaterial.GetColor("_EmissionColor");
+            CacheOriginalEmission();
         }
 
         public void Configure(string name, string message, bool locked = false, Renderer renderer = null)
@@ -43,7 +42,17 @@ namespace Tugas7
             successMessage = message;
             startsLocked = locked;
             unlocked = !locked;
-            if (renderer != null) targetRenderer = renderer;
+            if (renderer != null)
+            {
+                targetRenderer = renderer;
+                CacheOriginalEmission();
+            }
+        }
+
+        public void ConfigureHighlight(Color color, float intensity)
+        {
+            glowColor = color;
+            highlightIntensity = Mathf.Max(1f, intensity);
         }
 
         public void ConfigureAction(CourseAction action, T7_CourseManager manager,
@@ -60,9 +69,18 @@ namespace Tugas7
         public void SetHighlighted(bool highlighted)
         {
             if (targetRenderer == null) return;
+            properties ??= new MaterialPropertyBlock();
             targetRenderer.GetPropertyBlock(properties);
-            properties.SetColor("_EmissionColor", highlighted ? glowColor * 2f : originalEmission);
+            properties.SetColor("_EmissionColor",
+                highlighted ? glowColor * highlightIntensity : originalEmission);
             targetRenderer.SetPropertyBlock(properties);
+        }
+
+        private void CacheOriginalEmission()
+        {
+            if (targetRenderer != null && targetRenderer.sharedMaterial != null &&
+                targetRenderer.sharedMaterial.HasProperty("_EmissionColor"))
+                originalEmission = targetRenderer.sharedMaterial.GetColor("_EmissionColor");
         }
 
         public string Interact()
