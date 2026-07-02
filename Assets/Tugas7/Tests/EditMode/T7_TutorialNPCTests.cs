@@ -758,11 +758,69 @@ namespace Tugas7.Tests
             {
                 T7_TutorialNPC[] guides = scene.GetRootGameObjects()
                     .SelectMany(root => root.GetComponentsInChildren<T7_TutorialNPC>(true))
+                    .Where(npc => npc.transform.parent == null ||
+                        npc.transform.parent.name != "FinishCelebrationNPCs")
                     .ToArray();
                 Assert.That(guides, Has.Length.EqualTo(5));
                 Assert.That(guides.Count(guide => guide.DialogueLines.Count == 1), Is.EqualTo(4));
                 Assert.That(guides.SelectMany(guide => guide.GetComponentsInChildren<Canvas>(true)),
                     Has.All.Matches<Canvas>(canvas => canvas.renderMode == RenderMode.WorldSpace));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void BuiltSceneContainsConfiguredFinishCelebration()
+        {
+            Scene scene = EditorSceneManager.OpenScene(
+                "Assets/Scenes/T6_T7_MainScene.unity", OpenSceneMode.Additive);
+            try
+            {
+                GameObject gauntlet = scene.GetRootGameObjects()
+                    .Single(root => root.name == "T7_GauntletRoot");
+                Transform finish = gauntlet.transform.Find("FinishArea/FinishCelebrationNPCs");
+                Assert.That(finish, Is.Not.Null);
+                T7_TutorialNPC[] finishNpcs =
+                    finish.GetComponentsInChildren<T7_TutorialNPC>(true);
+                Assert.That(finishNpcs, Has.Length.EqualTo(2));
+                Assert.That(gauntlet.GetComponentsInChildren<T7_TutorialNPC>(true),
+                    Has.Length.EqualTo(7));
+                Assert.That(finishNpcs.Select(npc => Mathf.Sign(npc.transform.position.x)),
+                    Is.EquivalentTo(new[] { -1f, 1f }));
+                foreach (T7_TutorialNPC npc in finishNpcs)
+                {
+                    Assert.That(Mathf.Abs(npc.transform.position.x), Is.GreaterThanOrEqualTo(3f));
+                    Assert.That(npc.transform.position.z, Is.GreaterThan(187f));
+                    Transform interaction = npc.transform.Find("InteractionRange");
+                    Assert.That(interaction, Is.Not.Null);
+                    Assert.That(interaction.gameObject.activeSelf, Is.False);
+                    Assert.That(interaction.GetComponent<T7_NPCProximityPrompt>().enabled, Is.False);
+                    Transform dialogue = npc.transform.Find("WorldSpaceDialogue");
+                    Assert.That(dialogue, Is.Not.Null);
+                    Assert.That(dialogue.gameObject.activeSelf, Is.False);
+                }
+
+                T7_FinishPresentation presentation =
+                    finish.GetComponent<T7_FinishPresentation>();
+                Assert.That(presentation, Is.Not.Null);
+                AudioSource source = finish.GetComponent<AudioSource>();
+                Assert.That(source, Is.Not.Null);
+                Assert.That(source.playOnAwake, Is.False);
+                Assert.That(source.loop, Is.False);
+                Assert.That(source.spatialBlend, Is.Zero);
+                Assert.That(AssetDatabase.GetAssetPath(source.clip),
+                    Is.EqualTo("Assets/Audio/wow_2.wav"));
+
+                T7_CourseInteractable beacon = gauntlet.transform
+                    .Find("FinishArea/FinishBeacon").GetComponent<T7_CourseInteractable>();
+                var serializedBeacon = new SerializedObject(beacon);
+                Assert.That(serializedBeacon.FindProperty("highlightIntensity").floatValue,
+                    Is.EqualTo(6f));
+                Assert.That(serializedBeacon.FindProperty("glowColor").colorValue,
+                    Is.EqualTo(new Color(1f, 0.45f, 0.03f, 1f)));
             }
             finally
             {

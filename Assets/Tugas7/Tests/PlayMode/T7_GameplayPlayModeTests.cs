@@ -55,5 +55,30 @@ namespace Tugas7.Tests
             Assert.That(body.linearVelocity, Is.EqualTo(Vector3.zero));
             Object.Destroy(player);
         }
+
+        [UnityTest]
+        public IEnumerator FinishPresentationTriggersOnlyOnceInPlayMode()
+        {
+            var root = new GameObject("FinishPresentationTest");
+            var manager = root.AddComponent<T7_CourseManager>();
+            var leftNpc = new GameObject("LeftNPC").AddComponent<T7_TutorialNPC>();
+            var rightNpc = new GameObject("RightNPC").AddComponent<T7_TutorialNPC>();
+            leftNpc.transform.SetParent(root.transform);
+            rightNpc.transform.SetParent(root.transform);
+            var presentation = root.AddComponent<T7_FinishPresentation>();
+            presentation.Configure(manager, null, new[] { leftNpc, rightNpc });
+
+            manager.TryActivateCheckpoint(1, root.transform);
+            manager.TryActivateCheckpoint(2, root.transform);
+            manager.TryActivateCheckpoint(3, root.transform);
+            Assert.That(manager.TryFinishCourse(), Is.True);
+            Assert.That(manager.TryFinishCourse(), Is.False);
+            yield return null;
+
+            Assert.That(leftNpc.IsVictorious, Is.True);
+            Assert.That(rightNpc.IsVictorious, Is.True);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+            Object.Destroy(root);
+        }
     }
 }

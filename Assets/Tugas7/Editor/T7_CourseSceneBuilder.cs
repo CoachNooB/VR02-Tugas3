@@ -88,7 +88,7 @@ namespace Tugas7.Editor
             BuildSectionGuide(section4, "Section4Guide", new Vector3(5.25f, 0.5f, 143f),
                 player.transform, camera,
                 "Combine precise jumps and timing to reach the finish.");
-            var beacon = BuildFinish(finish, manager);
+            var beacon = BuildFinish(finish, manager, player.transform, camera);
             manager.SetFinishInteractable(beacon);
             BuildVisualDressing(environment, lighting);
 
@@ -273,17 +273,34 @@ namespace Tugas7.Editor
             CreateSign(parent, "FinalSign", new Vector3(-5.5f, 2.2f, 143), "FINAL CHALLENGE\nCombine timing, balance, and movement");
         }
 
-        private static T7_CourseInteractable BuildFinish(Transform parent, T7_CourseManager manager)
+        private static T7_CourseInteractable BuildFinish(Transform parent, T7_CourseManager manager,
+            Transform player, Camera camera)
         {
             CreateFloor("FinishFloor", parent, new Vector3(0, 0, 187), new Vector3(12, 1, 14));
             var beacon = CreateInteractable(parent, "FinishBeacon", new Vector3(0, 2, 187),
                 new Vector3(1.8f, 4f, 1.8f), Mats["Gold"], "Finish Beacon", "Run complete", true);
+            beacon.ConfigureHighlight(new Color(1f, 0.45f, 0.03f), 6f);
             var interactionTarget = beacon.gameObject.AddComponent<BoxCollider>();
             interactionTarget.isTrigger = true;
             interactionTarget.center = new Vector3(0f, 0f, -0.7f);
             interactionTarget.size = new Vector3(2.2f, 1.2f, 2.5f);
             beacon.ConfigureAction(T7_CourseInteractable.CourseAction.FinishCourse, manager);
             CreateSign(parent, "FinishSign", new Vector3(-5.5f, 2.2f, 185), "FINISH\nCheckpoint 3 unlocks this beacon\nLook at it and press E");
+
+            Transform celebration = Group("FinishCelebrationNPCs", parent);
+            T7_TutorialNPC left = BuildTutorialNPC(celebration, "FinishGuide_Left",
+                new Vector3(-3.8f, 0.5f, 189.5f), player, camera,
+                new[] { "Outstanding run!" }, false);
+            T7_TutorialNPC right = BuildTutorialNPC(celebration, "FinishGuide_Right",
+                new Vector3(3.8f, 0.5f, 189.5f), player, camera,
+                new[] { "You conquered the gauntlet!" }, false);
+            var source = celebration.gameObject.AddComponent<AudioSource>();
+            source.clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/wow_2.wav");
+            source.playOnAwake = false;
+            source.loop = false;
+            source.spatialBlend = 0f;
+            celebration.gameObject.AddComponent<T7_FinishPresentation>()
+                .Configure(manager, source, new[] { left, right });
             return beacon;
         }
 
@@ -354,14 +371,14 @@ namespace Tugas7.Editor
             BuildTutorialNPC(parent, name, position, player, camera, new[] { line });
         }
 
-        private static void BuildTutorialNPC(Transform parent, string name, Vector3 position,
-            Transform player, Camera camera, IReadOnlyList<string> lines)
+        private static T7_TutorialNPC BuildTutorialNPC(Transform parent, string name, Vector3 position,
+            Transform player, Camera camera, IReadOnlyList<string> lines, bool enableInteraction = true)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(T7_UpgradeAssetBuilder.NpcPrefabPath);
             if (prefab == null)
             {
                 Debug.LogWarning("Tutorial NPC prefab is unavailable.");
-                return;
+                return null;
             }
             GameObject instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
             instance.name = name;
@@ -381,6 +398,23 @@ namespace Tugas7.Editor
                 instance.transform.Find("WorldSpaceDialogue/DialoguePanel/Speaker")?.GetComponent<TMP_Text>(),
                 instance.transform.Find("WorldSpaceDialogue/DialoguePanel/Line")?.GetComponent<TMP_Text>(),
                 camera.transform);
+            if (!enableInteraction)
+            {
+                Transform interaction = instance.transform.Find("InteractionRange");
+                if (interaction != null)
+                {
+                    T7_NPCProximityPrompt prompt = interaction.GetComponent<T7_NPCProximityPrompt>();
+                    if (prompt != null)
+                        prompt.enabled = false;
+                    interaction.gameObject.SetActive(false);
+                }
+                Transform dialogueObject = instance.transform.Find("WorldSpaceDialogue");
+                dialogue?.HidePrompt();
+                dialogue?.HideDialogue();
+                if (dialogueObject != null)
+                    dialogueObject.gameObject.SetActive(false);
+            }
+            return npc;
         }
 
         private static void BuildVisualDressing(Transform parent, Transform lighting)

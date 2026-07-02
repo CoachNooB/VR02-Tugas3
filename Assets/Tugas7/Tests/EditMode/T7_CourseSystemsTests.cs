@@ -118,6 +118,84 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void FinishPresentationMakesBothNpcsVictoriousAndPlaysOnce()
+        {
+            var source = root.AddComponent<AudioSource>();
+            source.clip = AudioClip.Create("FinishTest", 32, 1, 8000, false);
+            var leftNpc = new GameObject("LeftNPC").AddComponent<T7_TutorialNPC>();
+            var rightNpc = new GameObject("RightNPC").AddComponent<T7_TutorialNPC>();
+            leftNpc.transform.SetParent(root.transform);
+            rightNpc.transform.SetParent(root.transform);
+            var presentation = root.AddComponent<T7_FinishPresentation>();
+            presentation.Configure(manager, source, new[] { leftNpc, rightNpc });
+
+            CompleteCourse(manager);
+
+            Assert.That(leftNpc.IsVictorious, Is.True);
+            Assert.That(rightNpc.IsVictorious, Is.True);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+            Assert.That(manager.TryFinishCourse(), Is.False);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void FinishPresentationReplacesManagerSubscriptionWithoutDuplicates()
+        {
+            var firstManager = new GameObject("FirstManager").AddComponent<T7_CourseManager>();
+            var secondManager = new GameObject("SecondManager").AddComponent<T7_CourseManager>();
+            firstManager.transform.SetParent(root.transform);
+            secondManager.transform.SetParent(root.transform);
+            var presentation = root.AddComponent<T7_FinishPresentation>();
+
+            presentation.Configure(firstManager, null, System.Array.Empty<T7_TutorialNPC>());
+            presentation.Configure(secondManager, null, System.Array.Empty<T7_TutorialNPC>());
+            CompleteCourse(firstManager);
+            Assert.That(presentation.PlayCount, Is.Zero);
+
+            CompleteCourse(secondManager);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void MissingFinishClipWarnsOnceAndStillPresentsNpcs()
+        {
+            var source = root.AddComponent<AudioSource>();
+            var npc = new GameObject("FinishNPC").AddComponent<T7_TutorialNPC>();
+            npc.transform.SetParent(root.transform);
+            var presentation = root.AddComponent<T7_FinishPresentation>();
+            presentation.Configure(manager, source, new[] { npc });
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning,
+                "Finish presentation AudioSource has no clip.");
+
+            CompleteCourse(manager);
+            InvokePrivate(presentation, "Present");
+
+            Assert.That(npc.IsVictorious, Is.True);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+            UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void DisabledFinishPresentationUnsubscribesAndResubscribesOnEnable()
+        {
+            var presentation = root.AddComponent<T7_FinishPresentation>();
+            presentation.Configure(manager, null, System.Array.Empty<T7_TutorialNPC>());
+            presentation.enabled = false;
+            InvokePrivate(presentation, "OnDisable");
+
+            CompleteCourse(manager);
+            Assert.That(presentation.PlayCount, Is.Zero);
+
+            var replacement = new GameObject("ReplacementManager").AddComponent<T7_CourseManager>();
+            replacement.transform.SetParent(root.transform);
+            presentation.Configure(replacement, null, System.Array.Empty<T7_TutorialNPC>());
+            presentation.enabled = true;
+            InvokePrivate(presentation, "OnEnable");
+            CompleteCourse(replacement);
+            Assert.That(presentation.PlayCount, Is.EqualTo(1));
+        }
+
+        [Test]
         public void HighlightUsesConfiguredIntensityAndRestoresOriginalEmission()
         {
             Shader shader = Shader.Find("Universal Render Pipeline/Lit");
@@ -258,6 +336,14 @@ namespace Tugas7.Tests
             target.GetType().GetMethod(methodName,
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 .Invoke(target, null);
+        }
+
+        private static void CompleteCourse(T7_CourseManager courseManager)
+        {
+            courseManager.TryActivateCheckpoint(1, courseManager.transform);
+            courseManager.TryActivateCheckpoint(2, courseManager.transform);
+            courseManager.TryActivateCheckpoint(3, courseManager.transform);
+            Assert.That(courseManager.TryFinishCourse(), Is.True);
         }
     }
 }
