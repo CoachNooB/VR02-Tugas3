@@ -428,6 +428,49 @@ namespace Tugas7.Tests
         }
 
         [Test]
+        public void PreparedTutorialNpcHasLoopingVictoryAndTexturedUrpMaterials()
+        {
+            Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
+            MethodInfo prepare = builder?.GetMethod("PrepareAll");
+            Assert.That(prepare, Is.Not.Null);
+            prepare.Invoke(null, null);
+
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                "Assets/Tugas7/Animations/T7_TutorialNPC.controller");
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(controller.parameters.Any(parameter =>
+                parameter.name == "IsVictorious" &&
+                parameter.type == AnimatorControllerParameterType.Bool), Is.True);
+            AnimatorState[] states = controller.layers[0].stateMachine.states
+                .Select(child => child.state).ToArray();
+            Assert.That(states.Select(state => state.name),
+                Is.EquivalentTo(new[] { "Waving", "Talking", "Head Hit", "Victory" }));
+            Assert.That(controller.parameters.Any(parameter =>
+                parameter.name == "IsTalking" &&
+                parameter.type == AnimatorControllerParameterType.Bool), Is.True);
+            Assert.That(controller.parameters.Any(parameter =>
+                parameter.name == "HeadHit" &&
+                parameter.type == AnimatorControllerParameterType.Trigger), Is.True);
+            AnimatorState victory = states.Single(state => state.name == "Victory");
+            Assert.That(victory.motion, Is.TypeOf<AnimationClip>());
+            Assert.That(((AnimationClip)victory.motion).isLooping, Is.True);
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Tugas7/Prefabs/T7_TutorialNPC.prefab");
+            SkinnedMeshRenderer[] renderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            Assert.That(renderers, Is.Not.Empty);
+            foreach (SkinnedMeshRenderer renderer in renderers)
+            foreach (Material material in renderer.sharedMaterials)
+            {
+                Assert.That(material, Is.Not.Null, renderer.name);
+                Assert.That(material.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"), renderer.name);
+                Assert.That(material.GetTexture("_BaseMap"), Is.Not.Null, renderer.name);
+                StringAssert.StartsWith("Assets/Tugas7/Materials/NPC/",
+                    AssetDatabase.GetAssetPath(material), renderer.name);
+            }
+        }
+
+        [Test]
         public void BuiltSceneContainsStartAndFourSectionGuides()
         {
             Scene scene = EditorSceneManager.OpenScene(
@@ -469,16 +512,20 @@ namespace Tugas7.Tests
         public void RepeatedAssetPreparationPreservesAnimatorController()
         {
             const string path = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+            const string prefabPath = "Assets/Tugas7/Prefabs/T7_TutorialNPC.prefab";
             Type builder = Type.GetType("Tugas7.Editor.T7_UpgradeAssetBuilder, Tugas7.Editor");
             MethodInfo prepare = builder?.GetMethod("PrepareAll");
             Assert.That(prepare, Is.Not.Null);
 
             prepare.Invoke(null, null);
             string first = File.ReadAllText(path);
+            string firstPrefab = File.ReadAllText(prefabPath);
             prepare.Invoke(null, null);
             string second = File.ReadAllText(path);
+            string secondPrefab = File.ReadAllText(prefabPath);
 
             Assert.That(second, Is.EqualTo(first));
+            Assert.That(secondPrefab, Is.EqualTo(firstPrefab));
         }
     }
 }

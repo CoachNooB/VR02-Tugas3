@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using TMPro;
 using Tugas7;
@@ -15,7 +16,10 @@ namespace Tugas7.Editor
         private const string WavingPath = "Assets/Animations/Ch44_nonPBR@Waving.fbx";
         private const string TalkingPath = "Assets/Animations/Ch44_nonPBR@Talking.fbx";
         private const string HeadHitPath = "Assets/Animations/Ch44_nonPBR@Head Hit.fbx";
+        private const string VictoryPath = "Assets/Animations/Ch44_nonPBR@Victory Idle.fbx";
         private const string ControllerPath = "Assets/Tugas7/Animations/T7_TutorialNPC.controller";
+        private const string NpcMaterialFolder = "Assets/Tugas7/Materials/NPC";
+        private const string NpcTextureFolder = "Assets/Tugas7/Textures/NPC";
 
         public static void PrepareAll()
         {
@@ -23,6 +27,7 @@ namespace Tugas7.Editor
             ConfigureTextures();
             ConfigureNpcModels();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            CreateNpcMaterials();
             CreateLavaMaterial();
             CreateEnvironmentMaterials();
             AnimatorController controller = CreateAnimatorController();
@@ -36,6 +41,8 @@ namespace Tugas7.Editor
             EnsureFolder("Assets/Tugas7", "Prefabs");
             EnsureFolder("Assets/Tugas7/Prefabs", "Environment");
             EnsureFolder("Assets/Tugas7/Materials", "Environment");
+            EnsureFolder("Assets/Tugas7/Materials", "NPC");
+            EnsureFolder("Assets/Tugas7/Textures", "NPC");
         }
 
         private static void ConfigureTextures()
@@ -67,6 +74,7 @@ namespace Tugas7.Editor
             Avatar avatar = AssetDatabase.LoadAllAssetsAtPath(WavingPath).OfType<Avatar>().FirstOrDefault();
             ConfigureModel(TalkingPath, "Talking", avatar);
             ConfigureModel(HeadHitPath, "Head Hit", avatar, false);
+            ConfigureModel(VictoryPath, "Victory", avatar);
         }
 
         private static void ConfigureModel(string path, string clipName, Avatar sourceAvatar, bool loopTime = true)
@@ -91,6 +99,110 @@ namespace Tugas7.Editor
             clip.lockRootHeightY = true;
             importer.clipAnimations = new[] { clip };
             importer.SaveAndReimport();
+        }
+
+        private static void CreateNpcMaterials()
+        {
+            GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(WavingPath);
+            Material[] imported = model == null
+                ? System.Array.Empty<Material>()
+                : model.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                    .SelectMany(renderer => renderer.sharedMaterials).Where(material => material != null).ToArray();
+            Texture2D[] embedded = imported.Select(FindBaseMap).Where(texture => texture != null).Distinct().ToArray();
+            Texture2D clothingMap = embedded.FirstOrDefault();
+            Texture2D skinMap = embedded.Skip(1).FirstOrDefault() ?? clothingMap;
+            Texture2D normalMap = imported.Select(FindNormalMap).FirstOrDefault(texture => texture != null);
+            if (clothingMap == null)
+            {
+                clothingMap = EnsureFallbackTexture("T7_NPC_Clothing.png", false);
+                skinMap = EnsureFallbackTexture("T7_NPC_Skin.png", true);
+            }
+            CreateNpcMaterial("T7_NPC_Clothing", clothingMap, normalMap, false);
+            CreateNpcMaterial("T7_NPC_Skin", skinMap, normalMap, true);
+        }
+
+        private static Texture2D FindBaseMap(Material material)
+        {
+            foreach (string property in new[] { "_BaseMap", "_MainTex" })
+            {
+                if (material.HasProperty(property) && material.GetTexture(property) is Texture2D texture)
+                    return texture;
+            }
+            return null;
+        }
+
+        private static Texture2D FindNormalMap(Material material)
+        {
+            foreach (string property in new[] { "_BumpMap", "_NormalMap" })
+            {
+                if (material.HasProperty(property) && material.GetTexture(property) is Texture2D texture)
+                    return texture;
+            }
+            return null;
+        }
+
+        private static Texture2D EnsureFallbackTexture(string fileName, bool skin)
+        {
+            string path = $"{NpcTextureFolder}/{fileName}";
+            if (!File.Exists(path))
+            {
+                const int size = 256;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                var pixels = new Color32[size * size];
+                var random = new System.Random(skin ? 7128 : 1947);
+                Color baseColor = skin ? new Color(0.56f, 0.28f, 0.18f) : new Color(0.055f, 0.19f, 0.27f);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float detail = skin
+                        ? (float)(random.NextDouble() - 0.5) * 0.09f
+                        : (((x / 3 + y / 3) & 1) == 0 ? 0.055f : -0.035f) +
+                          (float)(random.NextDouble() - 0.5) * 0.025f;
+                    pixels[y * size + x] = (Color32)new Color(
+                        Mathf.Clamp01(baseColor.r + detail),
+                        Mathf.Clamp01(baseColor.g + detail * 0.7f),
+                        Mathf.Clamp01(baseColor.b + detail * 0.5f), 1f);
+                }
+                texture.SetPixels32(pixels);
+                texture.Apply();
+                File.WriteAllBytes(path, texture.EncodeToPNG());
+                UnityEngine.Object.DestroyImmediate(texture);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            }
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer &&
+                (!importer.sRGBTexture || importer.maxTextureSize != 256))
+            {
+                importer.textureType = TextureImporterType.Default;
+                importer.sRGBTexture = true;
+                importer.mipmapEnabled = true;
+                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.maxTextureSize = 256;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        private static void CreateNpcMaterial(string name, Texture2D baseMap, Texture2D normalMap, bool skin)
+        {
+            string path = $"{NpcMaterialFolder}/{name}.mat";
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetColor("_BaseColor", Color.white);
+            material.SetTexture("_BaseMap", baseMap);
+            material.SetTexture("_BumpMap", normalMap);
+            if (normalMap != null)
+                material.EnableKeyword("_NORMALMAP");
+            else
+                material.DisableKeyword("_NORMALMAP");
+            material.SetFloat("_Metallic", 0f);
+            material.SetFloat("_Smoothness", skin ? 0.32f : 0.16f);
+            EditorUtility.SetDirty(material);
         }
 
         private static void CreateLavaMaterial()
@@ -206,17 +318,24 @@ namespace Tugas7.Editor
                 controller.AddParameter("IsTalking", AnimatorControllerParameterType.Bool);
             if (!controller.parameters.Any(p => p.name == "HeadHit"))
                 controller.AddParameter("HeadHit", AnimatorControllerParameterType.Trigger);
+            if (!controller.parameters.Any(p => p.name == "IsVictorious"))
+                controller.AddParameter("IsVictorious", AnimatorControllerParameterType.Bool);
 
             AnimationClip waving = FindClip(WavingPath, "Waving");
             AnimationClip talking = FindClip(TalkingPath, "Talking");
             AnimationClip headHit = FindClip(HeadHitPath, "Head Hit");
+            AnimationClip victory = FindClip(VictoryPath, "Victory");
             AnimatorState wavingState = machine.AddState("Waving");
             wavingState.motion = waving;
             AnimatorState talkingState = machine.AddState("Talking");
             talkingState.motion = talking;
             AnimatorState headHitState = machine.AddState("Head Hit");
             headHitState.motion = headHit;
+            AnimatorState victoryState = machine.AddState("Victory");
+            victoryState.motion = victory;
             machine.defaultState = wavingState;
+            AddVictoryTransition(wavingState, victoryState, false);
+            AddVictoryTransition(talkingState, victoryState, false);
             AddTransition(wavingState, talkingState, true);
             AddTransition(talkingState, wavingState, false);
             AnimatorStateTransition enterHit = machine.AddAnyStateTransition(headHitState);
@@ -224,6 +343,7 @@ namespace Tugas7.Editor
             enterHit.duration = 0.08f;
             enterHit.canTransitionToSelf = false;
             enterHit.AddCondition(AnimatorConditionMode.If, 0f, "HeadHit");
+            AddVictoryTransition(headHitState, victoryState, true);
             AddHeadHitExit(headHitState, talkingState, true);
             AddHeadHitExit(headHitState, wavingState, false);
             EditorUtility.SetDirty(controller);
@@ -233,16 +353,20 @@ namespace Tugas7.Editor
         private static bool ControllerIsCurrent(AnimatorController controller, AnimatorStateMachine machine)
         {
             string[] stateNames = machine.states.Select(child => child.state.name).ToArray();
-            return stateNames.Length == 3 &&
+            return stateNames.Length == 4 &&
                    stateNames.Contains("Waving") &&
                    stateNames.Contains("Talking") &&
                    stateNames.Contains("Head Hit") &&
+                   stateNames.Contains("Victory") &&
                    controller.parameters.Any(parameter =>
                        parameter.name == "IsTalking" &&
                        parameter.type == AnimatorControllerParameterType.Bool) &&
                    controller.parameters.Any(parameter =>
                        parameter.name == "HeadHit" &&
-                       parameter.type == AnimatorControllerParameterType.Trigger);
+                       parameter.type == AnimatorControllerParameterType.Trigger) &&
+                   controller.parameters.Any(parameter =>
+                       parameter.name == "IsVictorious" &&
+                       parameter.type == AnimatorControllerParameterType.Bool);
         }
 
         private static void AddTransition(AnimatorState from, AnimatorState to, bool value)
@@ -251,6 +375,16 @@ namespace Tugas7.Editor
             transition.hasExitTime = false;
             transition.duration = 0.15f;
             transition.AddCondition(value ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot, 0f, "IsTalking");
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsVictorious");
+        }
+
+        private static void AddVictoryTransition(AnimatorState from, AnimatorState to, bool hasExitTime)
+        {
+            AnimatorStateTransition transition = from.AddTransition(to);
+            transition.hasExitTime = hasExitTime;
+            transition.exitTime = hasExitTime ? 0.92f : 0f;
+            transition.duration = 0.15f;
+            transition.AddCondition(AnimatorConditionMode.If, 0f, "IsVictorious");
         }
 
         private static void AddHeadHitExit(AnimatorState from, AnimatorState to, bool talking)
@@ -258,9 +392,10 @@ namespace Tugas7.Editor
             AnimatorStateTransition transition = from.AddTransition(to);
             transition.hasExitTime = true;
             transition.exitTime = 0.92f;
-            transition.duration = 0.12f;
+            transition.duration = 0.15f;
             transition.AddCondition(talking ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot,
                 0f, "IsTalking");
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsVictorious");
         }
 
         private static AnimationClip FindClip(string path, string name) =>
@@ -281,7 +416,9 @@ namespace Tugas7.Editor
             var animator = root.AddComponent<Animator>();
             animator.runtimeAnimatorController = controller;
             animator.applyRootMotion = false;
+            animator.keepAnimatorStateOnDisable = true;
             animator.avatar = AssetDatabase.LoadAllAssetsAtPath(WavingPath).OfType<Avatar>().FirstOrDefault();
+            AssignNpcMaterials(model);
             var npc = root.AddComponent<T7_TutorialNPC>();
             CapsuleCollider hitCollider = root.AddComponent<CapsuleCollider>();
             hitCollider.center = new Vector3(0f, 1f, 0f);
@@ -300,6 +437,26 @@ namespace Tugas7.Editor
             npc.Configure(animator, dialogue, null);
             PrefabUtility.SaveAsPrefabAsset(root, NpcPrefabPath);
             Object.DestroyImmediate(root);
+        }
+
+        private static void AssignNpcMaterials(GameObject model)
+        {
+            Material clothing = AssetDatabase.LoadAssetAtPath<Material>(
+                $"{NpcMaterialFolder}/T7_NPC_Clothing.mat");
+            Material skin = AssetDatabase.LoadAssetAtPath<Material>($"{NpcMaterialFolder}/T7_NPC_Skin.mat");
+            foreach (SkinnedMeshRenderer renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                Material[] originals = renderer.sharedMaterials;
+                var replacements = new Material[originals.Length];
+                for (int i = 0; i < originals.Length; i++)
+                {
+                    string originalName = originals[i] == null ? string.Empty : originals[i].name.ToLowerInvariant();
+                    bool skinLike = originalName.Contains("skin") || originalName.Contains("face") ||
+                                    originalName.Contains("head") || (originals.Length > 1 && i == originals.Length - 1);
+                    replacements[i] = skinLike ? skin : clothing;
+                }
+                renderer.sharedMaterials = replacements;
+            }
         }
 
         private static T7_WorldSpaceDialogue BuildDialogue(Transform parent)
