@@ -80,5 +80,29 @@ namespace Tugas7.Tests
             Assert.That(presentation.PlayCount, Is.EqualTo(1));
             Object.Destroy(root);
         }
+
+        [UnityTest]
+        public IEnumerator LavaAudioDefersPlaybackUntilInactiveControllerIsEnabled()
+        {
+            var root = new GameObject("LavaAudioTest");
+            root.AddComponent<AudioListener>();
+            var source = new GameObject("LavaEmitter").AddComponent<AudioSource>();
+            source.transform.SetParent(root.transform);
+            var controller = root.AddComponent<T7_ProceduralLavaAudio>();
+            root.SetActive(false);
+
+            controller.Configure(new[] { source });
+
+            Assert.That(source.clip, Is.Not.Null);
+            Assert.That(source.isPlaying, Is.False);
+
+            root.SetActive(true);
+            yield return null;
+
+            Assert.That(source.clip, Is.SameAs(T7_ProceduralLavaAudio.CreateClip()));
+            Assert.That(source.isPlaying, Is.True);
+            LogAssert.NoUnexpectedReceived();
+            Object.Destroy(root);
+        }
     }
 }

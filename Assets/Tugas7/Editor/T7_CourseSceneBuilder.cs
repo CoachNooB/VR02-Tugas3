@@ -91,6 +91,7 @@ namespace Tugas7.Editor
             var beacon = BuildFinish(finish, manager, player.transform, camera);
             manager.SetFinishInteractable(beacon);
             BuildVisualDressing(environment, lighting);
+            BuildLavaAudio(systems);
 
             player.GetComponent<T7_RaycastInteractor>().Configure(camera, hud, 6f);
             player.GetComponent<T7_CratePusher>().Configure(camera, crate);
@@ -106,6 +107,31 @@ namespace Tugas7.Editor
         }
 
         public static void RebuildBatch() => Rebuild();
+
+        private static void BuildLavaAudio(Transform parent)
+        {
+            Transform audioGroup = Group("AmbientLavaAudio", parent);
+            var sources = new List<AudioSource>();
+            Vector3[] positions =
+            {
+                new(0f, 0.2f, 29f),
+                new(0f, 0.2f, 112f),
+                new(0f, 0.2f, 160f),
+                new(0f, 0.2f, 187f)
+            };
+            for (int i = 0; i < positions.Length; i++)
+            {
+                var emitter = new GameObject($"LavaEmitter_{i + 1}");
+                emitter.transform.SetParent(audioGroup);
+                emitter.transform.position = positions[i];
+                sources.Add(emitter.AddComponent<AudioSource>());
+            }
+
+            var controller = audioGroup.gameObject.AddComponent<T7_ProceduralLavaAudio>();
+            controller.Configure(sources);
+            for (int i = 0; i < sources.Count; i++)
+                sources[i].clip = null;
+        }
 
         private static GameObject CreatePlayer(Transform parent, T7_CourseManager manager,
             out Camera camera, out T7_PlayerHealth health, out T7_SpatialFeedbackUI hud,
