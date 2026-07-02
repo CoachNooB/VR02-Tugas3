@@ -12,8 +12,8 @@ Use only these CC0 Freesound recordings:
   - Source: https://freesound.org/people/e__/sounds/172630/
   - License: CC0 1.0
   - Purpose: natural lava crackle, pops, and volcanic field character.
-- `Bubbling, Large, A.wav` by `InspectorJ`
-  - Source: https://freesound.org/people/InspectorJ/sounds/398720/
+- `Heavy Bubbles` by `casiba842`
+  - Source: https://freesound.org/people/casiba842/sounds/577880/
   - License: CC0 1.0
   - Purpose: close bubbling texture layered below the field recording.
 

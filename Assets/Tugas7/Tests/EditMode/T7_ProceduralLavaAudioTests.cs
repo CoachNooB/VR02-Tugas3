@@ -16,6 +16,33 @@ namespace Tugas7.Tests
         public void TearDown() => T7_ProceduralLavaAudio.ResetCacheForTests();
 
         [Test]
+        public void ImportedLavaAmbienceAndAttributionArePresent()
+        {
+            AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(
+                "Assets/Tugas7/Audio/T7_LavaAmbience.ogg");
+            Assert.That(clip, Is.Not.Null);
+            Assert.That(clip.length, Is.InRange(20f, 30f));
+
+            TextAsset attribution = AssetDatabase.LoadAssetAtPath<TextAsset>(
+                "Assets/Tugas7/ThirdParty/ATTRIBUTION.md");
+            Assert.That(attribution, Is.Not.Null);
+            string text = attribution.text;
+            string[] required =
+            {
+                "Kilauea Lava Sounds.wav",
+                "e__",
+                "https://freesound.org/people/e__/sounds/172630/",
+                "Heavy Bubbles",
+                "casiba842",
+                "https://freesound.org/people/casiba842/sounds/577880/",
+                "CC0",
+                "T7_LavaAmbience.ogg"
+            };
+            foreach (string value in required)
+                StringAssert.Contains(value, text);
+        }
+
+        [Test]
         public void CreateClipIsDeterministicBoundedMonoAndLoopable()
         {
             AudioClip first = T7_ProceduralLavaAudio.CreateClip(22050, 4f, 73421);

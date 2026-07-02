@@ -29,7 +29,7 @@ Assert.That(clip, Is.Not.Null);
 Assert.That(clip.length, Is.InRange(20f, 30f));
 ```
 
-Load `ATTRIBUTION.md` and require both source titles, `e__`, `InspectorJ`, both Freesound URLs, `CC0`, and `T7_LavaAmbience.ogg`.
+Load `ATTRIBUTION.md` and require both source titles, `e__`, `casiba842`, both Freesound URLs, `CC0`, and `T7_LavaAmbience.ogg`.
 
 - [ ] **Step 2: Run focused Edit Mode test and confirm RED**
 
