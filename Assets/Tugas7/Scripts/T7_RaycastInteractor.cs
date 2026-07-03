@@ -8,7 +8,10 @@ namespace Tugas7
         [SerializeField] private T7_SpatialFeedbackUI ui;
         [SerializeField] private float range = 4f;
         [SerializeField] private LayerMask interactionMask = ~0;
+        [SerializeField] private AudioSource sfxSource;
         private T7_CourseInteractable target;
+
+        public void SetAudio(AudioSource source) => sfxSource = source;
 
         public void Configure(Camera camera, T7_SpatialFeedbackUI spatialUI, float rayRange = 4f)
         {
@@ -37,7 +40,11 @@ namespace Tugas7
             }
             ui?.SetInteractionPrompt(target != null ? target.Prompt : string.Empty);
             if (target != null && Input.GetKeyDown(KeyCode.E))
+            {
                 ui?.SetStatus(target.Interact());
+                if (sfxSource != null && sfxSource.clip != null)
+                    sfxSource.PlayOneShot(sfxSource.clip);
+            }
         }
 
         private void OnDisable()

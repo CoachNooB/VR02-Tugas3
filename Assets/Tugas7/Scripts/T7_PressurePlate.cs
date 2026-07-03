@@ -10,7 +10,10 @@ namespace Tugas7
         [SerializeField] private Renderer plateRenderer;
         [SerializeField] private Color offColor = new(0.45f, 0.1f, 0.65f);
         [SerializeField] private Color onColor = new(0.1f, 0.9f, 0.2f);
+        [SerializeField] private AudioSource sfxSource;
         private int overlapCount;
+
+        public void SetAudio(AudioSource source) => sfxSource = source;
         public bool IsPressed { get; private set; }
         public event Action Pressed;
         public event Action Released;
@@ -39,6 +42,8 @@ namespace Tugas7
                 plateRenderer.material.color = color;
                 plateRenderer.material.SetColor("_EmissionColor", color);
             }
+            if (sfxSource != null && sfxSource.clip != null)
+                sfxSource.PlayOneShot(sfxSource.clip);
             if (pressed) Pressed?.Invoke(); else Released?.Invoke();
         }
     }

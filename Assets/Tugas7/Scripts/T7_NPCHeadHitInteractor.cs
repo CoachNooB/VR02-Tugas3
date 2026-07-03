@@ -6,12 +6,15 @@ namespace Tugas7
     {
         [SerializeField] private Camera playerCamera;
         [SerializeField, Min(0.1f)] private float range = 3f;
+        [SerializeField] private AudioSource sfxSource;
 
         public void Configure(Camera camera, float hitRange = 3f)
         {
             playerCamera = camera;
             range = Mathf.Max(0.1f, hitRange);
         }
+
+        public void SetAudio(AudioSource source) => sfxSource = source;
 
         public bool TryHit(Ray ray)
         {
@@ -26,7 +29,9 @@ namespace Tugas7
         {
             if (playerCamera == null || !Input.GetMouseButtonDown(0))
                 return;
-            TryHit(new Ray(playerCamera.transform.position, playerCamera.transform.forward));
+            if (TryHit(new Ray(playerCamera.transform.position, playerCamera.transform.forward))
+                && sfxSource != null && sfxSource.clip != null)
+                sfxSource.PlayOneShot(sfxSource.clip);
         }
     }
 }

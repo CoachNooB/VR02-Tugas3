@@ -12,7 +12,17 @@ namespace Tugas7
         [SerializeField] private Renderer indicatorRenderer;
         [SerializeField] private Color inactiveColor = new(0.1f, 0.35f, 1f);
         [SerializeField] private Color activeColor = new(0.1f, 1f, 0.25f);
+        [SerializeField] private AudioSource sfxSource;
         public bool IsActivated { get; private set; }
+
+        public void SetAudio(AudioSource source) => sfxSource = source;
+
+        // Replay support: back to inactive (blue) so it can be activated again.
+        public void ResetCheckpoint()
+        {
+            IsActivated = false;
+            SetIndicator(inactiveColor);
+        }
 
         public void Configure(int index, T7_CourseManager manager, Transform point, Renderer indicator = null)
         {
@@ -32,6 +42,8 @@ namespace Tugas7
             {
                 IsActivated = true;
                 SetIndicator(activeColor);
+                if (sfxSource != null && sfxSource.clip != null)
+                    sfxSource.PlayOneShot(sfxSource.clip);
             }
         }
 

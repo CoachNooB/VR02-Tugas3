@@ -8,8 +8,11 @@ namespace Tugas7
         [SerializeField] private Vector3 openLocalPosition = new(0f, 4f, 0f);
         [SerializeField, Min(0.1f)] private float movementSpeed = 3f;
         [SerializeField] private T7_PressurePlate pressurePlate;
+        [SerializeField] private AudioSource sfxSource;
         public bool IsOpen { get; private set; }
         public Vector3 TargetLocalPosition => IsOpen ? openLocalPosition : closedLocalPosition;
+
+        public void SetAudio(AudioSource source) => sfxSource = source;
 
         private void Awake()
         {
@@ -54,7 +57,13 @@ namespace Tugas7
             SetOpen(plate.IsPressed);
         }
 
-        public void SetOpen(bool open) => IsOpen = open;
+        public void SetOpen(bool open)
+        {
+            if (IsOpen == open) return;
+            IsOpen = open;
+            if (sfxSource != null && sfxSource.clip != null)
+                sfxSource.PlayOneShot(sfxSource.clip);
+        }
         public void Open() => SetOpen(true);
         public void Close() => SetOpen(false);
 

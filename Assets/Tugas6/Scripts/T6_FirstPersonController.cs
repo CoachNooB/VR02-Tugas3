@@ -29,8 +29,14 @@ public class T6_FirstPersonController : MonoBehaviour
     [SerializeField] private float jarakCekTanah = 1.2f; // panjang ray ke bawah cek lantai
     [SerializeField] private LayerMask layerTanah = ~0;  // ~0 = semua layer
 
+    [Header("Suara (opsional)")]
+    [SerializeField] private AudioSource sfxSource;   // sumber suara di player
+    [SerializeField] private AudioClip clipLompat;    // saat mulai lompat
+    [SerializeField] private AudioClip clipMendarat;  // saat menyentuh tanah lagi
+
     private float sudutPitch = 0f; // sudut kamera atas-bawah
     private CapsuleCollider kapsulPlayer;
+    private bool diTanahSebelumnya = true; // buat deteksi momen mendarat
 
     // Awake: isi reference otomatis kalau lupa di-drag (Camera.main & GetComponent = contoh slide P10).
     private void Awake()
@@ -53,7 +59,12 @@ public class T6_FirstPersonController : MonoBehaviour
     private void Update()
     {
         LihatMouse();
-        if (Input.GetKeyDown(KeyCode.Space) && DiTanah()) Lompat();
+        bool diTanah = DiTanah();
+        if (Input.GetKeyDown(KeyCode.Space) && diTanah) Lompat();
+
+        // baru saja menyentuh tanah (tadinya di udara) -> suara mendarat
+        if (diTanah && !diTanahSebelumnya) MainkanSuara(clipMendarat);
+        diTanahSebelumnya = diTanah;
     }
 
     // Gerak fisik dilakukan di FixedUpdate (waktu physics).
@@ -93,6 +104,13 @@ public class T6_FirstPersonController : MonoBehaviour
         Vector3 v = rb.linearVelocity;
         v.y = gayaLompat;
         rb.linearVelocity = v;
+        MainkanSuara(clipLompat);
+    }
+
+    // Mainkan satu clip lewat sumber suara player (kalau keduanya terpasang).
+    private void MainkanSuara(AudioClip clip)
+    {
+        if (sfxSource != null && clip != null) sfxSource.PlayOneShot(clip);
     }
 
     // Cek apakah player menyentuh tanah (tembak ray pendek ke bawah).
