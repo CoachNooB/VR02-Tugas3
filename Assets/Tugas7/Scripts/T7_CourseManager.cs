@@ -8,6 +8,7 @@ namespace Tugas7
         [SerializeField] private T7_SpatialFeedbackUI ui;
         [SerializeField] private T7_CourseInteractable finishInteractable;
         [SerializeField] private Transform currentRespawnPoint;
+        [SerializeField] private Transform initialRespawnPoint;
         public int CurrentCheckpointIndex { get; private set; }
         public Transform CurrentRespawnPoint => currentRespawnPoint;
         public bool IsRunning { get; private set; }
@@ -34,7 +35,21 @@ namespace Tugas7
         {
             ui = spatialUI;
             currentRespawnPoint = initialRespawn;
+            initialRespawnPoint = initialRespawn;
             ui?.SetCheckpoint(0, 3);
+        }
+
+        // Replay support: put the course back into its pre-run state.
+        public void ResetCourse()
+        {
+            IsRunning = false;
+            IsComplete = false;
+            CurrentCheckpointIndex = 0;
+            elapsedTime = 0f;
+            CompletionMessage = null;
+            if (initialRespawnPoint != null) currentRespawnPoint = initialRespawnPoint;
+            ui?.SetCheckpoint(0, 3);
+            ui?.SetStatus("Activate the cyan Start Terminal");
         }
 
         public void SetFinishInteractable(T7_CourseInteractable interactable)

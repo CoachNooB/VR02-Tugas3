@@ -118,5 +118,8 @@ namespace Tugas7
         }
 
         public void Unlock() => unlocked = true;
+
+        // Replay support: lock again (e.g. finish beacon after a course reset).
+        public void Relock() => unlocked = false;
     }
 }

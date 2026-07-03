@@ -73,30 +73,39 @@ namespace Tugas7.Editor
             BuildSectionGuide(section1, "Section1Guide", new Vector3(5.35f, 0.5f, 15f),
                 player.transform, camera,
                 "Time your jumps between platforms and avoid the rotating machinery.");
-            CreateCheckpoint(checkpoint1, 1, 50f, manager);
+            T7_Checkpoint cp1 = CreateCheckpoint(checkpoint1, 1, 50f, manager);
             Rigidbody crate = BuildPuzzle(section2, manager);
             BuildSectionGuide(section2, "Section2Guide", new Vector3(5.2f, 0.5f, 58f),
                 player.transform, camera,
                 "Push the yellow crate onto the pressure plate to open the gate.");
-            CreateCheckpoint(checkpoint2, 2, 92f, manager);
+            T7_Checkpoint cp2 = CreateCheckpoint(checkpoint2, 2, 92f, manager);
             BuildSection3(section3);
             BuildSectionGuide(section3, "Section3Guide", new Vector3(-5.25f, 0.5f, 97f),
                 player.transform, camera,
                 "Ride the moving platforms and keep clear of the sweeper.");
-            CreateCheckpoint(checkpoint3, 3, 137f, manager);
+            T7_Checkpoint cp3 = CreateCheckpoint(checkpoint3, 3, 137f, manager);
             BuildFinal(section4);
             BuildSectionGuide(section4, "Section4Guide", new Vector3(5.25f, 0.5f, 143f),
                 player.transform, camera,
                 "Combine precise jumps and timing to reach the finish.");
-            var beacon = BuildFinish(finish, manager, player.transform, camera);
+            var beacon = BuildFinish(finish, manager, player.transform, camera,
+                out T7_FinishPresentation presentation, out T7_CourseInteractable restartTerminal);
             manager.SetFinishInteractable(beacon);
             BuildVisualDressing(environment, lighting);
             BuildLavaAudio(systems);
+            BuildBaseAmbience(systems);
 
             player.GetComponent<T7_RaycastInteractor>().Configure(camera, hud, 6f);
             player.GetComponent<T7_CratePusher>().Configure(camera, crate);
             player.GetComponent<T7_RespawnController>().Configure(health, playerBody, manager, 1f, 50f, movement);
             hud.Bind(health);
+            ConfigurePlayerAudio(player, health, movement);
+
+            // replay loop wiring
+            var restart = systems.gameObject.AddComponent<T7_CourseRestart>();
+            restart.Configure(manager, restartTerminal, beacon, presentation,
+                new[] { cp1, cp2, cp3 }, startGate, crate, initialRespawn,
+                playerBody, health, AddAudio(systems.gameObject, LoadSfx("Respawn"), 0.7f, spatial: false));
 
             AddSceneToBuildSettings();
             EditorSceneManager.MarkSceneDirty(scene);
@@ -107,6 +116,60 @@ namespace Tugas7.Editor
         }
 
         public static void RebuildBatch() => Rebuild();
+
+        private static void ConfigurePlayerAudio(GameObject player, T7_PlayerHealth health, Behaviour movement)
+        {
+            // one 2D source on the player shared by every player-side one-shot
+            AudioSource source = AddAudio(player, null, 0.8f, spatial: false);
+
+            var sfx = player.AddComponent<T7_SfxPlayer>();
+            sfx.Configure(health, source, LoadSfx("Damage"), LoadSfx("Respawn"));
+
+            // interact click (source.clip pattern like T7_FinishPresentation)
+            AudioSource interact = AddAudio(player, LoadSfx("Interact"), 0.6f, spatial: false);
+            player.GetComponent<T7_RaycastInteractor>().SetAudio(interact);
+
+            AudioSource bonk = AddAudio(player, LoadSfx("HeadBonk"), 0.8f, spatial: false);
+            player.GetComponent<T7_NPCHeadHitInteractor>().SetAudio(bonk);
+
+            // jump/land clips on the movement controller (fields are private serialized)
+            if (movement == null) return;
+            var serialized = new SerializedObject(movement);
+            SerializedProperty sfxProp = serialized.FindProperty("sfxSource");
+            if (sfxProp == null) return;
+            sfxProp.objectReferenceValue = source;
+            serialized.FindProperty("clipLompat").objectReferenceValue = LoadSfx("Jump");
+            serialized.FindProperty("clipMendarat").objectReferenceValue = LoadSfx("Land");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static AudioClip LoadSfx(string name) =>
+            AssetDatabase.LoadAssetAtPath<AudioClip>($"Assets/Tugas7/Audio/SFX/T7_SFX_{name}.ogg");
+
+        private static AudioSource AddAudio(GameObject go, AudioClip clip, float volume,
+            bool spatial, bool loop = false, bool playOnAwake = false, float maxDistance = 18f)
+        {
+            var source = go.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.volume = volume;
+            source.loop = loop;
+            source.playOnAwake = playOnAwake;
+            source.spatialBlend = spatial ? 1f : 0f;
+            if (spatial)
+            {
+                source.rolloffMode = AudioRolloffMode.Linear;
+                source.minDistance = 1.5f;
+                source.maxDistance = maxDistance;
+            }
+            return source;
+        }
+
+        private static void BuildBaseAmbience(Transform parent)
+        {
+            var go = new GameObject("BaseFacilityAmbience");
+            go.transform.SetParent(parent);
+            AddAudio(go, LoadSfx("BaseAmbience"), 0.09f, spatial: false, loop: true, playOnAwake: true);
+        }
 
         private static void BuildLavaAudio(Transform parent)
         {
@@ -262,6 +325,7 @@ namespace Tugas7.Editor
             var plate = plateGo.AddComponent<T7_PressurePlate>();
             plate.SetDesignatedCrate(body);
             plate.SetRenderer(plateGo.GetComponent<Renderer>());
+            plate.SetAudio(AddAudio(plateGo, LoadSfx("PressurePlate"), 0.8f, spatial: true));
             var gate = CreateGate(parent, "PuzzleGate", new Vector3(0, 2f, 84), new Vector3(0, 7f, 84));
             gate.Bind(plate);
             var console = CreateInteractable(parent, "GateConsole", new Vector3(-4.5f, 1.2f, 80),
@@ -300,7 +364,8 @@ namespace Tugas7.Editor
         }
 
         private static T7_CourseInteractable BuildFinish(Transform parent, T7_CourseManager manager,
-            Transform player, Camera camera)
+            Transform player, Camera camera,
+            out T7_FinishPresentation presentation, out T7_CourseInteractable restartTerminal)
         {
             CreateFloor("FinishFloor", parent, new Vector3(0, 0, 187), new Vector3(12, 1, 14));
             var beacon = CreateInteractable(parent, "FinishBeacon", new Vector3(0, 2, 187),
@@ -325,12 +390,18 @@ namespace Tugas7.Editor
             source.playOnAwake = false;
             source.loop = false;
             source.spatialBlend = 0f;
-            celebration.gameObject.AddComponent<T7_FinishPresentation>()
-                .Configure(manager, source, new[] { left, right });
+            presentation = celebration.gameObject.AddComponent<T7_FinishPresentation>();
+            presentation.Configure(manager, source, new[] { left, right });
+
+            // replay loop: terminal to restart the course after finishing
+            restartTerminal = CreateInteractable(parent, "RestartTerminal", new Vector3(4.5f, 1.2f, 187f),
+                new Vector3(1.2f, 2.2f, 0.7f), Mats["Cyan"], "Restart Course", "", false);
+            CreateSign(parent, "RestartSign", new Vector3(4.5f, 2.9f, 187f),
+                "REPLAY\nFinish first, then press E\nto run the gauntlet again", 90f);
             return beacon;
         }
 
-        private static void CreateCheckpoint(Transform parent, int index, float z, T7_CourseManager manager)
+        private static T7_Checkpoint CreateCheckpoint(Transform parent, int index, float z, T7_CourseManager manager)
         {
             CreateFloor("CheckpointFloor", parent, new Vector3(0, 0, z), new Vector3(12, 1, 6));
             var zone = Primitive("HealingZone", PrimitiveType.Cylinder, parent, new Vector3(0, 0.6f, z),
@@ -339,8 +410,10 @@ namespace Tugas7.Editor
             Transform point = Marker("RespawnPoint", parent, new Vector3(0, 1.1f, z));
             var checkpoint = zone.AddComponent<T7_Checkpoint>();
             checkpoint.Configure(index, manager, point, zone.GetComponent<Renderer>());
+            checkpoint.SetAudio(AddAudio(zone, LoadSfx("Checkpoint"), 0.8f, spatial: true));
             CreateSign(parent, $"Checkpoint{index}Sign", new Vector3(-5.5f, 2.2f, z),
                 $"CHECKPOINT {index}\nBlue activates to green\nHealing: 10 HP/second");
+            return checkpoint;
         }
 
         private static T7_Gate CreateGate(Transform parent, string name, Vector3 closed, Vector3 open)
@@ -348,6 +421,7 @@ namespace Tugas7.Editor
             var go = Primitive(name, PrimitiveType.Cube, parent, closed, new Vector3(11, 4, 0.7f), Mats["WeatheredMetal"]);
             var gate = go.AddComponent<T7_Gate>();
             gate.Configure(closed, open, 4f);
+            gate.SetAudio(AddAudio(go, LoadSfx("GateOpen"), 0.85f, spatial: true, maxDistance: 25f));
             return gate;
         }
 
@@ -364,6 +438,7 @@ namespace Tugas7.Editor
         {
             var go = Primitive(name, PrimitiveType.Cube, parent, position, new Vector3(5.5f, 0.6f, 5.5f), Mats["Safe"]);
             go.AddComponent<T7_MovingPlatform>().Configure(Vector3.zero, delta, duration);
+            AddAudio(go, LoadSfx("PlatformHum"), 0.3f, spatial: true, loop: true, playOnAwake: true, maxDistance: 12f);
         }
 
         private static void CreateSweeper(Transform parent, string name, Vector3 position, float speed, float length)
@@ -416,6 +491,8 @@ namespace Tugas7.Editor
             T7_WorldSpaceDialogue dialogue = instance.GetComponentInChildren<T7_WorldSpaceDialogue>(true);
             npc.Configure(instance.GetComponent<Animator>(), dialogue, player);
             npc.ConfigureDialogue(lines);
+            instance.AddComponent<T7_NpcVoice>().Configure(npc,
+                AddAudio(instance, null, 0.6f, spatial: true, maxDistance: 12f), LoadSfx("NpcBlip"));
             dialogue.Configure(
                 dialogue.GetComponent<Canvas>(),
                 instance.transform.Find("WorldSpaceDialogue/PromptPanel")?.gameObject,
@@ -624,12 +701,13 @@ namespace Tugas7.Editor
             reset.AddComponent<T7_ResetVolume>();
         }
 
-        private static void CreateSign(Transform parent, string name, Vector3 position, string text)
+        private static void CreateSign(Transform parent, string name, Vector3 position, string text,
+            float yaw = -90f)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Canvas));
             go.transform.SetParent(parent);
             go.transform.position = position;
-            go.transform.rotation = Quaternion.Euler(0, -90, 0);
+            go.transform.rotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = Vector3.one * 0.01f;
             var rect = (RectTransform)go.transform; rect.sizeDelta = new Vector2(440, 220);
             go.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;

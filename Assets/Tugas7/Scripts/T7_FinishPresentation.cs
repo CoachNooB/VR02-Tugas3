@@ -49,6 +49,9 @@ namespace Tugas7
             subscribed = false;
         }
 
+        // Replay support: allow the celebration to play again on the next finish.
+        public void ResetPresentation() => presented = false;
+
         private void Present()
         {
             if (presented)

@@ -56,8 +56,8 @@ Material:
     - _Tiling: 1.6
     m_Colors:
     - _CrustColor: {r: 0.16, g: 0.025, b: 0.008, a: 1}
-    - _FlowOffsetA: {r: 7.4945626, g: 2.997825, b: 0, a: 0}
-    - _FlowOffsetB: {r: -3.59739, g: 5.99565, b: 0, a: 0}
+    - _FlowOffsetA: {r: 2.3412569, g: 0.93650264, b: 0, a: 0}
+    - _FlowOffsetB: {r: -1.1238033, g: 1.8730053, b: 0, a: 0}
     - _FlowSpeedA: {r: 0.025, g: 0.01, b: 0, a: 0}
     - _FlowSpeedB: {r: -0.012, g: 0.02, b: 0, a: 0}
     - _HotColor: {r: 5, g: 0.7, b: 0.03, a: 1}
