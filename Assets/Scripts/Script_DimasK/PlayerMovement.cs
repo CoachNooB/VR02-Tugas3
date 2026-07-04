@@ -83,10 +83,10 @@ public class PlayerMovement : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
         if (Keyboard.current != null)
         {
-            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrow.isPressed) z += 1f;
-            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrow.isPressed) z -= 1f;
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrow.isPressed) x -= 1f;
-            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrow.isPressed) x += 1f;
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) z += 1f;
+            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) z -= 1f;
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) x -= 1f;
+            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) x += 1f;
         }
         else
         {

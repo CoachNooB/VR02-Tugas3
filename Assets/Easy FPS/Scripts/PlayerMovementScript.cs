@@ -67,10 +67,10 @@ public class PlayerMovementScript : MonoBehaviour {
 
 #if ENABLE_INPUT_SYSTEM
 		if (Keyboard.current != null) {
-			if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrow.isPressed) vertical += 1f;
-			if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrow.isPressed) vertical -= 1f;
-			if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrow.isPressed) horizontal -= 1f;
-			if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrow.isPressed) horizontal += 1f;
+			if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) vertical += 1f;
+			if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) vertical -= 1f;
+			if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) horizontal -= 1f;
+			if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) horizontal += 1f;
 		} else {
 			horizontal = Input.GetAxis ("Horizontal");
 			vertical = Input.GetAxis ("Vertical");
