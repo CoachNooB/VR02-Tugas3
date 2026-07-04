@@ -1289,8 +1289,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7a9f721ceb345688a4074f3b2629dc0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCController
-  interactionPromptWorldUI: {fileID: 0}
-  tutorialCanvas: {fileID: 0}
+  interactionPromptWorldUI: {fileID: 1729858953}
+  tutorialCanvas: {fileID: 696447485}
 --- !u!1 &620622756
 GameObject:
   m_ObjectHideFlags: 0
@@ -2635,7 +2635,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e144ff102180c111bbd7b6e1a4b30805, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
-  interactionDistance: 4
+  interactionDistance: 2
   npcLayer:
     serializedVersion: 2
     m_Bits: 4294967295
