@@ -1,6 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMovementScript : MonoBehaviour {
 	Rigidbody rb;
@@ -58,16 +62,33 @@ public class PlayerMovementScript : MonoBehaviour {
 				deaccelerationSpeed);
 		}
 
-		if (grounded) {
-			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed * Time.deltaTime, 0, Input.GetAxis ("Vertical") * accelerationSpeed * Time.deltaTime);
-		} else {
-			rb.AddRelativeForce (Input.GetAxis ("Horizontal") * accelerationSpeed / 2 * Time.deltaTime, 0, Input.GetAxis ("Vertical") * accelerationSpeed / 2 * Time.deltaTime);
+		float horizontal = 0f;
+		float vertical = 0f;
 
+#if ENABLE_INPUT_SYSTEM
+		if (Keyboard.current != null) {
+			if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrow.isPressed) vertical += 1f;
+			if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrow.isPressed) vertical -= 1f;
+			if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrow.isPressed) horizontal -= 1f;
+			if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrow.isPressed) horizontal += 1f;
+		} else {
+			horizontal = Input.GetAxis ("Horizontal");
+			vertical = Input.GetAxis ("Vertical");
+		}
+#else
+		horizontal = Input.GetAxis ("Horizontal");
+		vertical = Input.GetAxis ("Vertical");
+#endif
+
+		if (grounded) {
+			rb.AddRelativeForce (horizontal * accelerationSpeed * Time.deltaTime, 0, vertical * accelerationSpeed * Time.deltaTime);
+		} else {
+			rb.AddRelativeForce (horizontal * accelerationSpeed / 2 * Time.deltaTime, 0, vertical * accelerationSpeed / 2 * Time.deltaTime);
 		}
 		/*
 		 * Slippery issues fixed here
 		 */
-		if (Input.GetAxis ("Horizontal") != 0 || Input.GetAxis ("Vertical") != 0) {
+		if (horizontal != 0f || vertical != 0f) {
 			deaccelerationSpeed = 0.5f;
 		} else {
 			deaccelerationSpeed = 0.1f;
@@ -77,7 +98,18 @@ public class PlayerMovementScript : MonoBehaviour {
 	* Handles jumping and ads the force and sounds.
 	*/
 	void Jumping(){
-		if (Input.GetKeyDown (KeyCode.Space) && grounded) {
+		bool jumpPressed = false;
+#if ENABLE_INPUT_SYSTEM
+		if (Keyboard.current != null) {
+			jumpPressed = Keyboard.current.spaceKey.wasPressedThisFrame;
+		} else {
+			jumpPressed = Input.GetKeyDown (KeyCode.Space);
+		}
+#else
+		jumpPressed = Input.GetKeyDown (KeyCode.Space);
+#endif
+
+		if (jumpPressed && grounded) {
 			rb.AddRelativeForce (Vector3.up * jumpForce);
 			if (_jumpSound)
 				_jumpSound.Play ();
@@ -164,7 +196,18 @@ public class PlayerMovementScript : MonoBehaviour {
 	* If player toggle the crouch it will scale the player to appear that is crouching
 	*/
 	void Crouching(){
-		if(Input.GetKey(KeyCode.C)){
+		bool crouchPressed = false;
+#if ENABLE_INPUT_SYSTEM
+		if (Keyboard.current != null) {
+			crouchPressed = Keyboard.current.cKey.isPressed;
+		} else {
+			crouchPressed = Input.GetKey(KeyCode.C);
+		}
+#else
+		crouchPressed = Input.GetKey(KeyCode.C);
+#endif
+
+		if(crouchPressed){
 			transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(1,0.6f,1), Time.deltaTime * 15);
 		}
 		else{

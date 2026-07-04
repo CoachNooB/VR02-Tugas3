@@ -1,6 +1,8 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
-
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public class MouseLookScript : MonoBehaviour {
 
@@ -11,20 +13,39 @@ public class MouseLookScript : MonoBehaviour {
 	 */
 	void Awake(){
 		Cursor.lockState = CursorLockMode.Locked;
-		myCamera = GameObject.FindGameObjectWithTag("MainCamera").transform;
+		
+		GameObject camObj = GameObject.FindGameObjectWithTag("MainCamera");
+		if (camObj != null) myCamera = camObj.transform;
+		if (myCamera == null && Camera.main != null) myCamera = Camera.main.transform;
+		if (myCamera == null) myCamera = GetComponentInChildren<Camera>()?.transform;
+		if (myCamera == null) myCamera = FindAnyObjectByType<Camera>()?.transform;
+
+		if (myCamera == null) {
+			Debug.LogWarning("MouseLookScript: Main Camera tag or component not found!");
+		}
 	}
 
 	/*
-	* Locking the mouse if pressing L.
-	* Triggering the headbob camera omvement if player is faster than 1 of speed
-	*/
+	 * Locking the mouse if pressing L.
+	 * Triggering the headbob camera omvement if player is faster than 1 of speed
+	 */
 	void  Update(){
 
 		MouseInputMovement();
 
-		if (Input.GetKeyDown (KeyCode.L)) {
-			Cursor.lockState = CursorLockMode.Locked;
+		bool lKeyPressed = false;
+#if ENABLE_INPUT_SYSTEM
+		if (Keyboard.current != null) {
+			lKeyPressed = Keyboard.current.lKey.wasPressedThisFrame;
+		} else {
+			lKeyPressed = Input.GetKeyDown (KeyCode.L);
+		}
+#else
+		lKeyPressed = Input.GetKeyDown (KeyCode.L);
+#endif
 
+		if (lKeyPressed) {
+			Cursor.lockState = CursorLockMode.Locked;
 		}
 		deltaTime += (Time.deltaTime - deltaTime) * 0.1f;
 
@@ -42,8 +63,8 @@ public class MouseLookScript : MonoBehaviour {
 
 	[HideInInspector] public float timerToRotateZ;
 	/*
-	* Switching Z rotation and applying to camera in camera Rotation().
-	*/
+	 * Switching Z rotation and applying to camera in camera Rotation().
+	 */
 	void HeadMovement(){
 		timer += timeSpeed * Time.deltaTime;
 		int_timer = Mathf.RoundToInt (timer);
@@ -63,15 +84,26 @@ public class MouseLookScript : MonoBehaviour {
 	public float mouseSensitvity_aiming = 50;
 
 /*
-* FixedUpdate()
-* If aiming set the mouse sensitvity from our variables and vice versa.
-*/
+ * FixedUpdate()
+ * If aiming set the mouse sensitvity from our variables and vice versa.
+ */
 void FixedUpdate(){
+
+	bool isAiming = false;
+#if ENABLE_INPUT_SYSTEM
+	if (Mouse.current != null) {
+		isAiming = Mouse.current.rightButton.isPressed;
+	} else {
+		isAiming = Input.GetAxis("Fire2") != 0;
+	}
+#else
+	isAiming = Input.GetAxis("Fire2") != 0;
+#endif
 
 	/*
 	 * Reduxing mouse sensitvity if we are aiming.
 	 */
-	if(Input.GetAxis("Fire2") != 0){
+	if(isAiming){
 		mouseSensitvity = mouseSensitvity_aiming;
 	}
 	else if(GetComponent<PlayerMovementScript>().maxSpeed > 5){
@@ -112,9 +144,26 @@ public float bottomAngleView = -45;
  */
 void MouseInputMovement(){
 
-	wantedYRotation += Input.GetAxis("Mouse X") * mouseSensitvity;
+	float mouseX = 0f;
+	float mouseY = 0f;
+#if ENABLE_INPUT_SYSTEM
+	if (Mouse.current != null) {
+		Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+		// Scale down delta because New Input System mouse delta returns pixels/dot movements
+		mouseX = mouseDelta.x * 0.05f;
+		mouseY = mouseDelta.y * 0.05f;
+	} else {
+		mouseX = Input.GetAxis("Mouse X");
+		mouseY = Input.GetAxis("Mouse Y");
+	}
+#else
+	mouseX = Input.GetAxis("Mouse X");
+	mouseY = Input.GetAxis("Mouse Y");
+#endif
 
-	wantedCameraXRotation -= Input.GetAxis("Mouse Y") * mouseSensitvity;
+	wantedYRotation += mouseX * mouseSensitvity;
+
+	wantedCameraXRotation -= mouseY * mouseSensitvity;
 
 	wantedCameraXRotation = Mathf.Clamp(wantedCameraXRotation, bottomAngleView, topAngleView);
 
@@ -133,7 +182,9 @@ void ApplyingStuff(){
 	WeaponRotation();
 
 	transform.rotation = Quaternion.Euler(0, currentYRotation, 0);
-	myCamera.localRotation = Quaternion.Euler(currentCameraXRotation, 0, zRotation);
+	if (myCamera != null) {
+		myCamera.localRotation = Quaternion.Euler(currentCameraXRotation, 0, zRotation);
+	}
 
 }
 

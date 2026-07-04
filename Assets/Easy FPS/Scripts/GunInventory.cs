@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -106,7 +106,14 @@ public class GunInventory : MonoBehaviour {
     */
     IEnumerator SpawnWeaponUponStart(){
         yield return new WaitForSeconds (0.5f);
-        StartCoroutine("Spawn",0);
+        if (gunsIHave != null && gunsIHave.Count > 0)
+        {
+            StartCoroutine("Spawn", 0);
+        }
+        else
+        {
+            print("No guns in the inventory to spawn. Skipping weapon spawn.");
+        }
     }
 
     /* * Calculation switchWeaponCoolDown so it does not allow us to change weapons millions of times per second,
@@ -145,6 +152,8 @@ public class GunInventory : MonoBehaviour {
      * gun properties value.
      */
     void Create_Weapon(){
+
+        if (gunsIHave == null || gunsIHave.Count == 0) return;
 
         /*
          * Scrolling wheel waepons changing
@@ -193,6 +202,13 @@ public class GunInventory : MonoBehaviour {
             weaponChanging.Play ();
         else
             print ("Missing Weapon Changing music clip.");
+
+        if (gunsIHave == null || _redniBroj < 0 || _redniBroj >= gunsIHave.Count)
+        {
+            print("Cannot spawn weapon: index out of range or inventory empty.");
+            yield break;
+        }
+
         if(currentGun){
             if(currentGun.name.Contains("Gun")){
 
