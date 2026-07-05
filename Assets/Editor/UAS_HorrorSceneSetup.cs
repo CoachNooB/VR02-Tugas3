@@ -102,9 +102,8 @@ public class UAS_HorrorSceneSetup : EditorWindow
                 playerObj = GameObject.CreatePrimitive(PrimitiveType.Capsule);
                 playerObj.name = "Player";
                 playerObj.transform.position = new Vector3(0f, 1f, -10f);
-                CharacterController cc = playerObj.AddComponent<CharacterController>();
-                playerObj.AddComponent<UTS_Halimah.HalimahFirstPersonController>();
-                Debug.Log("Created fallback Player capsule.");
+                playerObj.AddComponent<CharacterController>();
+                Debug.Log("Created fallback Player capsule (no Easy FPS prefab found).");
             }
         }
 
