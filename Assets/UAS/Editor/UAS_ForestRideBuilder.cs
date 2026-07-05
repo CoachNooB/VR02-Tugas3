@@ -712,7 +712,7 @@ public static class UAS_ForestRideBuilder
         camera.nearClipPlane = 0.05f;
         cameraObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
         cameraObject.AddComponent<AudioListener>();
-        UAS_RayCastInteractorH interactor = playerObject.AddComponent<UAS_RayCastInteractorH>();
+        UAS_RaycastInteractorH interactor = playerObject.AddComponent<UAS_RaycastInteractorH>();
         player.Configure(pivot);
         interactor.Configure(camera, player, 5f);
         return player;
