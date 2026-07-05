@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class UAS_RideStatusUI : MonoBehaviour
+public class UAS_RideStatusUIH : MonoBehaviour
 {
     [SerializeField] private TMP_Text boardingText;
     [SerializeField] private TMP_Text titleText;

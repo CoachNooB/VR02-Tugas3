@@ -108,7 +108,7 @@ public static class UAS_ForestRideBuilder
             UAS_RideZoneTrigger.ZoneMode.Display);
         displayTrigger.Configure(UAS_RideZoneTrigger.ZoneMode.Display, null, sequence, null);
 
-        UAS_RideStatusUI statusUi = CreateWorldSpaceUi(worldUi);
+        UAS_RideStatusUIH statusUi = CreateWorldSpaceUi(worldUi);
 
         PrefabUtility.SaveAsPrefabAssetAndConnect(
             section,
@@ -712,13 +712,13 @@ public static class UAS_ForestRideBuilder
         camera.nearClipPlane = 0.05f;
         cameraObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
         cameraObject.AddComponent<AudioListener>();
-        UAS_RaycastInteractor interactor = playerObject.AddComponent<UAS_RaycastInteractor>();
+        UAS_RayCastInteractorH interactor = playerObject.AddComponent<UAS_RayCastInteractorH>();
         player.Configure(pivot);
         interactor.Configure(camera, player, 5f);
         return player;
     }
 
-    private static UAS_RideStatusUI CreateWorldSpaceUi(Transform parent)
+    private static UAS_RideStatusUIH CreateWorldSpaceUi(Transform parent)
     {
         Transform boardingCanvas = CreateCanvas(parent, "Boarding_Panel",
             new Vector3(-18f, 2.7f, -12.8f), Quaternion.Euler(0f, 0f, 0f),
@@ -738,7 +738,7 @@ public static class UAS_ForestRideBuilder
             TextAlignmentOptions.Bottom);
         stage.rectTransform.anchoredPosition = new Vector2(0f, 20f);
 
-        UAS_RideStatusUI status = parent.gameObject.AddComponent<UAS_RideStatusUI>();
+        UAS_RideStatusUIH status = parent.gameObject.AddComponent<UAS_RideStatusUIH>();
         status.Configure(
             FindText(parent, "Boarding_Instructions"),
             FindText(parent, "Forest_Title"),

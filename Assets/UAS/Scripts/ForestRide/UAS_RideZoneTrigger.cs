@@ -11,7 +11,7 @@ public class UAS_RideZoneTrigger : MonoBehaviour
     }
 
     [SerializeField] private ZoneMode mode;
-    [SerializeField] private UAS_RideStatusUI statusUI;
+    [SerializeField] private UAS_RideStatusUIH statusUI;
     [SerializeField] private UAS_ForestDisplaySequence displaySequence;
     [SerializeField] private Transform exitAnchor;
 
@@ -113,7 +113,7 @@ public class UAS_RideZoneTrigger : MonoBehaviour
 
     public void Configure(
         ZoneMode zoneMode,
-        UAS_RideStatusUI rideStatus,
+        UAS_RideStatusUIH rideStatus,
         UAS_ForestDisplaySequence sequence,
         Transform disembarkAnchor)
     {

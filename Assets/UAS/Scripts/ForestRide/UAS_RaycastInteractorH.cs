@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class UAS_RaycastInteractor : MonoBehaviour
+public class UAS_RaycastInteractorH : MonoBehaviour
 {
     [SerializeField] private Camera viewCamera;
     [SerializeField, Min(0.1f)] private float range = 5f;
