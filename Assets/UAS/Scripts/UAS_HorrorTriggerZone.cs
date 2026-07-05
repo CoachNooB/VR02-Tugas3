@@ -19,7 +19,10 @@ public class UAS_HorrorTriggerZone : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Check if the entering object is the player (either via controller, tag, or name)
-        if (other.CompareTag("Player") || other.GetComponent<HalimahFirstPersonController>() != null || other.GetComponent<PlayerMovement>() != null)
+        if (other.CompareTag("Player") || 
+            other.GetComponent<UAS_SimpleFPSController>() != null || 
+            other.GetComponent<HalimahFirstPersonController>() != null || 
+            other.GetComponent<PlayerMovement>() != null)
         {
             if (horrorSystem != null)
             {
@@ -34,7 +37,10 @@ public class UAS_HorrorTriggerZone : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player") || other.GetComponent<HalimahFirstPersonController>() != null || other.GetComponent<PlayerMovement>() != null)
+        if (other.CompareTag("Player") || 
+            other.GetComponent<UAS_SimpleFPSController>() != null || 
+            other.GetComponent<HalimahFirstPersonController>() != null || 
+            other.GetComponent<PlayerMovement>() != null)
         {
             if (horrorSystem != null)
             {
