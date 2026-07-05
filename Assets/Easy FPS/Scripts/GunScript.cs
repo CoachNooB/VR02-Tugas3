@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 //using UnityStandardAssets.ImageEffects;
 
@@ -66,25 +66,28 @@ public class GunScript : MonoBehaviour {
 	 * Collection the variables upon awake that we need.
 	 */
 	void Awake(){
+		try {
+			mls = GameObject.FindGameObjectWithTag("Player").GetComponent<MouseLookScript>();
+			player = mls.transform;
+			mainCamera = mls.myCamera;
+			secondCamera = GameObject.FindGameObjectWithTag("SecondCamera").GetComponent<Camera>();
+			cameraComponent = mainCamera.GetComponent<Camera>();
+			pmS = player.GetComponent<PlayerMovementScript>();
 
+			bulletSpawnPlace = GameObject.FindGameObjectWithTag("BulletSpawn");
+			hitMarker = transform.Find ("hitMarkerSound").GetComponent<AudioSource> ();
 
-		mls = GameObject.FindGameObjectWithTag("Player").GetComponent<MouseLookScript>();
-		player = mls.transform;
-		mainCamera = mls.myCamera;
-		secondCamera = GameObject.FindGameObjectWithTag("SecondCamera").GetComponent<Camera>();
-		cameraComponent = mainCamera.GetComponent<Camera>();
-		pmS = player.GetComponent<PlayerMovementScript>();
+			startLook = mouseSensitvity_notAiming;
+			startAim = mouseSensitvity_aiming;
+			startRun = mouseSensitvity_running;
 
-		bulletSpawnPlace = GameObject.FindGameObjectWithTag("BulletSpawn");
-		hitMarker = transform.Find ("hitMarkerSound").GetComponent<AudioSource> ();
-
-		startLook = mouseSensitvity_notAiming;
-		startAim = mouseSensitvity_aiming;
-		startRun = mouseSensitvity_running;
-
-		rotationLastY = mls.currentYRotation;
-		rotationLastX= mls.currentCameraXRotation;
-
+			rotationLastY = mls.currentYRotation;
+			rotationLastX= mls.currentCameraXRotation;
+		} catch (UnityException) {
+			// Tags not defined in project - gun system disabled
+			Debug.LogWarning("GunScript: Required tags not found. Gun system disabled.");
+			enabled = false;
+		}
 	}
 
 
