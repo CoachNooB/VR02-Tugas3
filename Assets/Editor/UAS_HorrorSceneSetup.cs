@@ -170,17 +170,134 @@ public class UAS_HorrorSceneSetup : EditorWindow
         CreateBloodStain("BloodStain_3", new Vector3(-3f, 0.01f, 4.5f), new Vector3(0.8f, 0.01f, 0.5f), bloodMat);
 
         // ============================
-        // 7. MONSTER PREFABS FROM PROJECT
+        // 7. MONSTER PREFABS FROM PROJECT (MANY!)
         // ============================
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_Corner",      new Vector3(-5f, 0.5f, 6f),  new Vector3(0, 140, 0), 1.5f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Shelf",   new Vector3(-5.5f, 1.3f, -2f), Vector3.zero, 1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Demon.prefab",       "Demon_Dark",         new Vector3(4f, 0f, 5.5f),  new Vector3(0, -90, 0), 1.2f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab",   "OrcSkull_Floor",     new Vector3(1f, 0.2f, 3f),  new Vector3(0, 45, 0), 0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Blue Demon.prefab",  "BlueDemon_Coffin",   new Vector3(-3f, 0.5f, 4f), new Vector3(0, 180, 0), 1f);
+        
+        // --- Ghosts scattered around the room ---
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_Corner",       new Vector3(-5f, 0.5f, 6f),     new Vector3(0, 140, 0),  1.5f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_Ceiling",      new Vector3(2f, 3.2f, 0f),      new Vector3(0, -90, 0),  1.2f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_BehindYou",    new Vector3(0f, 0.5f, -6f),     new Vector3(0, 0, 0),    1.8f);
+        
+        // --- Skulls everywhere ---
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Shelf",   new Vector3(-5.5f, 1.3f, -2f),  Vector3.zero,            1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Floor1",  new Vector3(1.5f, 0.2f, 1f),    new Vector3(0, 90, 0),   0.7f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Table",   new Vector3(3f, 0.9f, -4f),     new Vector3(0, -30, 0),  0.6f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab",   "OrcSkull_Floor",     new Vector3(1f, 0.2f, 3f),      new Vector3(0, 45, 0),   0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab",   "OrcSkull_Coffin",    new Vector3(-2.5f, 0.5f, 4.5f), new Vector3(30, 0, 0),   0.6f);
+        
+        // --- Demons ---
+        SpawnPrefab("Assets/Monsters/Prefabs/Demon.prefab",       "Demon_Dark",         new Vector3(4f, 0f, 5.5f),      new Vector3(0, -90, 0),  1.2f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Blue Demon.prefab",  "BlueDemon_Coffin",   new Vector3(-3f, 0.5f, 4f),     new Vector3(0, 180, 0),  1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Demon Flying.prefab","DemonFlying_Ceil",   new Vector3(-2f, 3.5f, 3f),     new Vector3(0, 45, 0),   1f);
+        
+        // --- Creepy creatures ---
+        SpawnPrefab("Assets/Monsters/Prefabs/Dragon.prefab",      "Dragon_Guard",       new Vector3(5f, 0f, 0f),        new Vector3(0, -90, 0),  1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Squidle.prefab",     "Squidle_Lurk",       new Vector3(-4f, 0f, 0f),       new Vector3(0, 90, 0),   1.2f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom.prefab",    "Mushroom_Dark1",     new Vector3(-5f, 0f, 2f),       Vector3.zero,            0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom.prefab",    "Mushroom_Dark2",     new Vector3(-4.5f, 0f, 2.5f),   new Vector3(0, 30, 0),   0.6f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom Blob.prefab","MushroomBlob_Wall", new Vector3(5.3f, 0.5f, -3f),   new Vector3(0, -90, 0),  0.7f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ninja.prefab",       "Ninja_Shadow",       new Vector3(4.5f, 0f, -2f),     new Vector3(0, -135, 0), 1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Green Blob.prefab",  "GreenBlob_Slime1",   new Vector3(-1f, 0f, 5f),       Vector3.zero,            0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Green Blob.prefab",  "GreenBlob_Slime2",   new Vector3(-1.5f, 0f, 5.5f),   new Vector3(0, 60, 0),   0.5f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Pink Blob.prefab",   "PinkBlob_Guts",      new Vector3(2f, 0f, 5f),        Vector3.zero,            0.6f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Wizard Blob.prefab", "WizardBlob_Altar",   new Vector3(0f, 0f, 6f),        new Vector3(0, 180, 0),  0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Yeti.prefab",        "Yeti_BigScare",      new Vector3(-4f, 0f, -5f),      new Vector3(0, 45, 0),   1.5f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Frog.prefab",        "Frog_Creepy",        new Vector3(3f, 0f, 1f),        new Vector3(0, -60, 0),  0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Goleing.prefab",     "Golem_Guard",        new Vector3(-2f, 0f, -4f),      new Vector3(0, 0, 0),    1.2f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Alien.prefab",       "Alien_Lurking",      new Vector3(3f, 0f, -6f),       new Vector3(0, 160, 0),  1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Cat Blob.prefab",    "CatBlob_Creepy",     new Vector3(-5f, 1.3f, -1f),    Vector3.zero,            0.5f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ninja Blob.prefab",  "NinjaBlob_Hide",     new Vector3(5f, 0.3f, 3f),      new Vector3(0, -90, 0),  0.6f);
+        
+        // --- Zombies ---
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie1.prefab",       "Zombie_Door",        new Vector3(0f, 0f, 6f),        new Vector3(0, 180, 0),  0.01f);
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie2.prefab",       "Zombie_Corner",      new Vector3(5f, 0f, -5f),       new Vector3(0, -45, 0),  0.01f);
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie3.prefab",       "Zombie_Ambush",      new Vector3(-5f, 0f, -6f),      new Vector3(0, 30, 0),   0.01f);
+        SpawnPrefab("Assets/Zombie/FBXs/Zombie_1_Complete.prefab","Zombie_Lying",       new Vector3(2f, 0f, -3f),       new Vector3(90, 0, 0),   0.01f);
+        SpawnPrefab("Assets/Zombie/FBXs/Zombie_2_Complete.prefab","Zombie_Crawl",       new Vector3(-1f, 0f, -2f),      new Vector3(30, 90, 0),  0.01f);
+        
+        // ============================
+        // 7.5. EXTRA HORROR PROPS
+        // ============================
+        
+        // --- Skull Pile (tumpukan tengkorak) ---
+        if (GameObject.Find("SkullPile") == null)
+        {
+            var pile = new GameObject("SkullPile");
+            pile.transform.position = new Vector3(4f, 0f, 4f);
+            for (int i = 0; i < 5; i++)
+            {
+                var skull = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                skull.name = $"Skull_{i}"; skull.transform.SetParent(pile.transform);
+                skull.transform.localPosition = new Vector3(Random.Range(-0.3f, 0.3f), i * 0.15f, Random.Range(-0.3f, 0.3f));
+                skull.transform.localScale = Vector3.one * Random.Range(0.18f, 0.28f);
+                SetMaterial(skull, FindOrCreateMaterial("Mat_Bone", new Color(0.85f, 0.8f, 0.7f)));
+            }
+        }
 
-        // Zombie near the door
-        SpawnPrefab("Assets/Zombie/Prefabs/Zombie1.prefab",       "Zombie_Door",        new Vector3(0f, 0f, 6f),    new Vector3(0, 180, 0), 0.01f);
-        SpawnPrefab("Assets/Zombie/Prefabs/Zombie2.prefab",       "Zombie_Corner",      new Vector3(5f, 0f, -5f),   new Vector3(0, -45, 0), 0.01f);
+        // --- Hanging Chains (rantai menggantung) ---
+        Material chainMat = FindOrCreateMaterial("Mat_Chain", new Color(0.3f, 0.3f, 0.32f));
+        CreateHangingChain("Chain_1", new Vector3(-2f, 4f, 1f), 2.5f, chainMat);
+        CreateHangingChain("Chain_2", new Vector3(3f, 4f, 3f), 1.8f, chainMat);
+        CreateHangingChain("Chain_3", new Vector3(0f, 4f, -3f), 3f, chainMat);
+        
+        // --- Spider Web Corners (sarang laba-laba di pojok) ---
+        Material webMat = FindOrCreateMaterial("Mat_SpiderWeb", new Color(0.9f, 0.9f, 0.9f, 0.3f));
+        CreateSpiderWeb("Web_1", new Vector3(-5.8f, 3.8f, -6.8f), webMat);
+        CreateSpiderWeb("Web_2", new Vector3(5.8f, 3.8f, -6.8f), webMat);
+        CreateSpiderWeb("Web_3", new Vector3(5.8f, 3.8f, 6.8f), webMat);
+        CreateSpiderWeb("Web_4", new Vector3(-5.8f, 3.8f, 6.8f), webMat);
+        
+        // --- Broken Mirror (cermin pecah) ---
+        if (GameObject.Find("BrokenMirror") == null)
+        {
+            Material mirrorMat = FindOrCreateEmissiveMaterial("Mat_Mirror", new Color(0.5f, 0.5f, 0.6f), 0.5f);
+            var mirror = new GameObject("BrokenMirror");
+            mirror.transform.position = new Vector3(5.85f, 2f, -3f);
+            // Frame
+            var mFrame = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            mFrame.name = "MirrorFrame"; mFrame.transform.SetParent(mirror.transform);
+            mFrame.transform.localPosition = Vector3.zero;
+            mFrame.transform.localScale = new Vector3(0.05f, 1.5f, 1f);
+            SetMaterial(mFrame, woodMat);
+            // Glass shards
+            for (int i = 0; i < 4; i++)
+            {
+                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                shard.name = $"Shard_{i}"; shard.transform.SetParent(mirror.transform);
+                shard.transform.localPosition = new Vector3(-0.02f, Random.Range(-0.5f, 0.5f), Random.Range(-0.3f, 0.3f));
+                shard.transform.localScale = new Vector3(0.01f, Random.Range(0.2f, 0.6f), Random.Range(0.15f, 0.4f));
+                shard.transform.localRotation = Quaternion.Euler(0, 0, Random.Range(-15f, 15f));
+                SetMaterial(shard, mirrorMat);
+            }
+        }
+        
+        // --- Ritual Circle (lingkaran ritual di lantai) ---
+        if (GameObject.Find("RitualCircle") == null)
+        {
+            Material ritualMat = FindOrCreateEmissiveMaterial("Mat_Ritual", new Color(0.8f, 0.1f, 0.1f), 1.5f);
+            var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            circle.name = "RitualCircle";
+            circle.transform.position = new Vector3(0f, 0.01f, 2f);
+            circle.transform.localScale = new Vector3(2.5f, 0.005f, 2.5f);
+            SetMaterial(circle, ritualMat);
+            // Ritual candles around circle
+            for (int i = 0; i < 5; i++)
+            {
+                float angle = i * (360f / 5f) * Mathf.Deg2Rad;
+                Vector3 pos = new Vector3(Mathf.Cos(angle) * 1.3f, 0f, 2f + Mathf.Sin(angle) * 1.3f);
+                CreateCandle($"RitualCandle_{i}", pos, candleMat);
+            }
+        }
+        
+        // --- Extra blood stains ---
+        CreateBloodStain("BloodStain_4", new Vector3(0f, 0.01f, -5f), new Vector3(2f, 0.01f, 1f), bloodMat);
+        CreateBloodStain("BloodStain_5", new Vector3(-4f, 0.01f, -4f), new Vector3(0.5f, 0.01f, 1.5f), bloodMat);
+        CreateBloodStain("BloodTrail", new Vector3(3f, 0.01f, 0f), new Vector3(0.3f, 0.01f, 4f), bloodMat);
+        
+        // --- Extra eerie lights ---
+        CreatePointLight("Light_RitualRed",    new Vector3(0f, 0.5f, 2f),     new Color(0.9f, 0.05f, 0.05f), 1.5f, 4f);
+        CreatePointLight("Light_CornerPurple", new Vector3(-5f, 1f, -6f),     new Color(0.4f, 0.1f, 0.6f),   1f, 5f);
+        CreatePointLight("Light_ZombieBlue",   new Vector3(5f, 1f, -5f),      new Color(0.1f, 0.2f, 0.5f),   0.8f, 4f);
 
         // ============================
         // 8. WORLD SPACE CANVAS UI
@@ -481,5 +598,36 @@ public class UAS_HorrorSceneSetup : EditorWindow
         }
 
         EditorUtility.SetDirty(manager);
+    }
+
+    static void CreateHangingChain(string name, Vector3 startPos, float length, Material mat)
+    {
+        if (GameObject.Find(name) != null) return;
+        var chain = new GameObject(name);
+        chain.transform.position = startPos;
+        int links = Mathf.RoundToInt(length / 0.3f);
+        for (int i = 0; i < links; i++)
+        {
+            var link = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            link.name = $"Link_{i}";
+            link.transform.SetParent(chain.transform);
+            link.transform.localPosition = new Vector3(0f, -i * 0.15f, 0f);
+            link.transform.localScale = new Vector3(0.04f, 0.1f, 0.04f);
+            SetMaterial(link, mat);
+        }
+    }
+
+    static void CreateSpiderWeb(string name, Vector3 pos, Material mat)
+    {
+        if (GameObject.Find(name) != null) return;
+        var web = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        web.name = name;
+        web.transform.position = pos;
+        web.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
+        web.transform.rotation = Quaternion.Euler(45, 45, 0);
+        SetMaterial(web, mat);
+        // Remove collider so it doesn't block player
+        var col = web.GetComponent<Collider>();
+        if (col != null) Object.DestroyImmediate(col);
     }
 }
