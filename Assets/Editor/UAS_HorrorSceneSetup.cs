@@ -77,7 +77,7 @@ public class UAS_HorrorSceneSetup : EditorWindow
         CreateSpookyPointLight("PointLight_SpookyRed", new Vector3(0f, 3.5f, 0f), Color.red, 1.8f, 12f);
         CreateSpookyPointLight("PointLight_SpookyGreen", new Vector3(-6f, 3.5f, 4f), Color.green, 1.2f, 8f);
 
-        // 5. Setup Player
+        // 5. Setup Player with Simple FPS Controller (no Easy FPS dependency)
         // Destroy default Main Camera at root to avoid conflict
         GameObject defaultCam = GameObject.Find("Main Camera");
         if (defaultCam != null && defaultCam.transform.parent == null)
@@ -86,25 +86,47 @@ public class UAS_HorrorSceneSetup : EditorWindow
             Debug.Log("Destroyed default root Main Camera to prevent conflict with Player Camera.");
         }
 
-        GameObject playerObj = GameObject.Find("Player");
+        // Also destroy any existing broken Player object
+        GameObject existingPlayer = GameObject.Find("Player");
+        if (existingPlayer != null)
+        {
+            // Check if it already has our controller - if so, keep it
+            if (existingPlayer.GetComponent<UAS_SimpleFPSController>() == null)
+            {
+                DestroyImmediate(existingPlayer);
+                existingPlayer = null;
+                Debug.Log("Removed old broken Player object.");
+            }
+        }
+
+        GameObject playerObj = existingPlayer;
         if (playerObj == null)
         {
-            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Easy FPS/Prefabs/Player.prefab");
-            if (playerPrefab != null)
-            {
-                playerObj = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab);
-                playerObj.name = "Player";
-                playerObj.transform.position = new Vector3(0f, 1f, -10f);
-                Debug.Log("Instantiated Player prefab from Easy FPS.");
-            }
-            else
-            {
-                playerObj = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                playerObj.name = "Player";
-                playerObj.transform.position = new Vector3(0f, 1f, -10f);
-                playerObj.AddComponent<CharacterController>();
-                Debug.Log("Created fallback Player capsule (no Easy FPS prefab found).");
-            }
+            playerObj = new GameObject("Player");
+            playerObj.tag = "Player";
+            playerObj.transform.position = new Vector3(0f, 1f, -10f);
+
+            // Add CharacterController
+            CharacterController cc = playerObj.AddComponent<CharacterController>();
+            cc.height = 2f;
+            cc.radius = 0.3f;
+            cc.center = new Vector3(0, 0, 0);
+
+            // Add our simple FPS controller
+            playerObj.AddComponent<UAS_SimpleFPSController>();
+
+            // Create camera as child
+            GameObject camObj = new GameObject("PlayerCamera");
+            camObj.transform.SetParent(playerObj.transform);
+            camObj.transform.localPosition = new Vector3(0f, 0.8f, 0f);
+            camObj.transform.localRotation = Quaternion.identity;
+            camObj.tag = "MainCamera";
+            Camera cam = camObj.AddComponent<Camera>();
+            cam.nearClipPlane = 0.1f;
+            cam.fieldOfView = 70f;
+            camObj.AddComponent<AudioListener>();
+
+            Debug.Log("Created Player with UAS_SimpleFPSController.");
         }
 
         // 6. Create World Space Canvas UI if not present
