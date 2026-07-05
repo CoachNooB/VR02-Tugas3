@@ -1,0 +1,58 @@
+<h2>Choose the obstacle-course layout</h2>
+<p class="subtitle">All options include Start → 3 checkpoints → Finish, lava damage, checkpoint healing, and a crate pressure-plate puzzle.</p>
+
+<div class="cards">
+  <div class="card" data-choice="linear-gauntlet" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px">
+      <div style="display:grid;grid-template-columns:repeat(9,1fr);align-items:center;gap:6px;text-align:center;font-size:12px">
+        <div style="background:#26a269;padding:12px 4px;border-radius:8px">START</div><div>→</div>
+        <div style="background:#d14900;padding:12px 4px;border-radius:8px">LAVA</div><div>→</div>
+        <div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP1</div><div>→</div>
+        <div style="background:#9558b2;padding:12px 4px;border-radius:8px">PUSH</div><div>→</div>
+        <div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP2</div>
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;gap:6px;text-align:center;font-size:12px">
+        <div style="background:#e5a50a;padding:12px 4px;border-radius:8px">JUMPS</div><div>→</div>
+        <div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP3</div><div>→</div>
+        <div style="background:#d14900;padding:12px 4px;border-radius:8px">LAVA</div><div>→</div>
+        <div style="background:#26a269;padding:12px 4px;border-radius:8px">FINISH</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Linear Gauntlet (Recommended)</h3>
+      <p>One readable route. Fastest to build, test, and explain during assessment.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="zigzag-arena" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(3,55px);gap:8px;text-align:center;align-items:center;font-size:12px">
+        <div style="background:#26a269;padding:12px 4px;border-radius:8px">START</div><div>→</div><div style="background:#d14900;padding:12px 4px;border-radius:8px">LAVA</div><div>→</div><div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP1</div>
+        <div style="grid-column:5">↓</div>
+        <div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP2</div><div>←</div><div style="background:#9558b2;padding:12px 4px;border-radius:8px">PUSH</div><div>←</div><div style="background:#e5a50a;padding:12px 4px;border-radius:8px">JUMPS</div>
+        <div>↓</div>
+        <div style="background:#2f81f7;padding:12px 4px;border-radius:8px">CP3</div><div>→</div><div style="background:#d14900;padding:12px 4px;border-radius:8px">LAVA</div><div>→</div><div style="background:#26a269;padding:12px 4px;border-radius:8px">FINISH</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Zigzag Arena</h3>
+      <p>Fits inside a compact room and lets players see later sections, but route readability needs barriers and signs.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="vertical-tower" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px">
+      <div style="display:flex;flex-direction:column-reverse;gap:8px;text-align:center;font-size:12px">
+        <div style="background:#26a269;padding:9px;border-radius:8px">START — Ground</div>
+        <div style="background:#d14900;padding:9px;border-radius:8px">LAVA + CP1</div>
+        <div style="background:#9558b2;padding:9px;border-radius:8px">PUSH PUZZLE + CP2</div>
+        <div style="background:#e5a50a;padding:9px;border-radius:8px">PLATFORM JUMPS + CP3</div>
+        <div style="background:#26a269;padding:9px;border-radius:8px">FINISH — Top</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Vertical Tower</h3>
+      <p>Strong spectacle and clear upward goal, but falling/respawning and camera comfort require more tuning.</p>
+    </div>
+  </div>
+</div>
