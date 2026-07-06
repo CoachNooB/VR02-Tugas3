@@ -787,5 +787,4 @@ public class UAS_HorrorSceneSetup : EditorWindow
         var col = web.GetComponent<Collider>();
         if (col != null) Object.DestroyImmediate(col);
     }
-    }
 }
