@@ -467,8 +467,8 @@ public class UAS_HorrorSceneSetup : EditorWindow
         SetMaterial(porchDeck, foundationMat);
 
         // Porch Support Pillars
-        CreatePillar(house.transform, "Porch_Pillar_L", new Vector3(-2.0f, 1.15f, -5.6f), woodMat);
-        CreatePillar(house.transform, "Porch_Pillar_R", new Vector3(2.0f, 1.15f, -5.6f), woodMat);
+        CreateHousePillar(house.transform, "Porch_Pillar_L", new Vector3(-2.0f, 1.15f, -5.6f), woodMat);
+        CreateHousePillar(house.transform, "Porch_Pillar_R", new Vector3(2.0f, 1.15f, -5.6f), woodMat);
 
         // Porch Roof
         GameObject porchRoof = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -480,21 +480,21 @@ public class UAS_HorrorSceneSetup : EditorWindow
 
         // 6. Glowing Windows (Emissive Yellow)
         // Main Front Window (pointed double-stacked window)
-        CreateWindow(house.transform, "Win_Front_1", new Vector3(-2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
-        CreateWindow(house.transform, "Win_Front_2", new Vector3(2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Front_1", new Vector3(-2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Front_2", new Vector3(2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
         
         // Gable Front Window
-        CreateWindow(house.transform, "Win_Front_Gable_1", new Vector3(0f, 4.8f, -3.9f), new Vector3(0.6f, 1.2f, 0.05f), windowMat);
-        CreateWindow(house.transform, "Win_Front_Gable_2", new Vector3(0f, 5.4f, -3.9f), new Vector3(0.4f, 0.4f, 0.05f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Front_Gable_1", new Vector3(0f, 4.8f, -3.9f), new Vector3(0.6f, 1.2f, 0.05f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Front_Gable_2", new Vector3(0f, 5.4f, -3.9f), new Vector3(0.4f, 0.4f, 0.05f), windowMat);
 
         // Tower Windows
-        CreateWindow(house.transform, "Win_Tower_Front", new Vector3(4.1f, 5.2f, -1.05f), new Vector3(0.5f, 1.0f, 0.05f), windowMat);
-        CreateWindow(house.transform, "Win_Tower_Side_R1", new Vector3(5.15f, 4.0f, 0f), new Vector3(0.05f, 1.0f, 0.5f), windowMat);
-        CreateWindow(house.transform, "Win_Tower_Side_R2", new Vector3(5.15f, 5.6f, 0f), new Vector3(0.05f, 0.8f, 0.5f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Tower_Front", new Vector3(4.1f, 5.2f, -1.05f), new Vector3(0.5f, 1.0f, 0.05f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Tower_Side_R1", new Vector3(5.15f, 4.0f, 0f), new Vector3(0.05f, 1.0f, 0.5f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Tower_Side_R2", new Vector3(5.15f, 5.6f, 0f), new Vector3(0.05f, 0.8f, 0.5f), windowMat);
 
         // Left Side Windows
-        CreateWindow(house.transform, "Win_Side_L1", new Vector3(-4.06f, 2.0f, 1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
-        CreateWindow(house.transform, "Win_Side_L2", new Vector3(-4.06f, 2.0f, -1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Side_L1", new Vector3(-4.06f, 2.0f, 1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
+        CreateGlowingWindow(house.transform, "Win_Side_L2", new Vector3(-4.06f, 2.0f, -1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
 
         // 7. Stone Chimney
         GameObject chimney = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -786,5 +786,25 @@ public class UAS_HorrorSceneSetup : EditorWindow
         
         var col = web.GetComponent<Collider>();
         if (col != null) Object.DestroyImmediate(col);
+    }
+
+    static void CreateHousePillar(Transform parent, string name, Vector3 localPos, Material mat)
+    {
+        GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        pillar.name = name;
+        pillar.transform.SetParent(parent);
+        pillar.transform.localPosition = localPos;
+        pillar.transform.localScale = new Vector3(0.12f, 0.9f, 0.12f);
+        SetMaterial(pillar, mat);
+    }
+
+    static void CreateGlowingWindow(Transform parent, string name, Vector3 localPos, Vector3 localScale, Material mat)
+    {
+        GameObject win = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        win.name = name;
+        win.transform.SetParent(parent);
+        win.transform.localPosition = localPos;
+        win.transform.localScale = localScale;
+        SetMaterial(win, mat);
     }
 }
