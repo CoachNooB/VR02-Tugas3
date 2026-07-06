@@ -285,11 +285,6 @@ public class UAS_HorrorSceneSetup : EditorWindow
                 "Arwah Hitam Penjaga: Berhenti! Tempat ini bukan untuk manusia hidup!",
                 "Arwah Hitam Penjaga: Energi iblis di dalam akan melahap jiwamu..."
             });
-        SpawnSingleGhost("Ghost_Bloody_Ext", new Vector3(0f, 1.0f, 18f), 1, ghostPrefabPath,
-            new string[] {
-                "Arwah Berdarah Penjaga: Tubuh kami hancur... tapi jiwa kami tetap di sini...",
-                "Arwah Berdarah Penjaga: Waspadalah terhadap kegelapan di dalam rumah."
-            });
         SpawnSingleGhost("Ghost_White_Ext", new Vector3(1.5f, 1.0f, 19f), 0, ghostPrefabPath,
             new string[] {
                 "Arwah Putih Penjaga: Kami adalah penjaga beranda rumah terkutuk ini...",
