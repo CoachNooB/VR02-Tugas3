@@ -9,116 +9,141 @@ public class UAS_HorrorSceneSetup : EditorWindow
     public static void SetupHauntedHouse()
     {
         // ============================
-        // 1. LIGHTING & ATMOSPHERE
+        // 1. LIGHTING & ATMOSPHERE (Spooky Night)
         // ============================
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.01f, 0.01f, 0.03f, 1f);
+        RenderSettings.ambientLight = new Color(0.005f, 0.005f, 0.015f, 1f);
         RenderSettings.fog = true;
-        RenderSettings.fogColor = new Color(0.02f, 0.03f, 0.02f, 1f);
-        RenderSettings.fogMode = FogMode.Exponential;
-        RenderSettings.fogDensity = 0.06f;
+        RenderSettings.fogColor = new Color(0.01f, 0.03f, 0.015f, 1f); // Dark eerie green fog
+        RenderSettings.fogMode = FogMode.ExponentialSquared;
+        RenderSettings.fogDensity = 0.05f;
 
-        // Dim the Directional Light
+        // Dim the Directional Light to resemble moonlight
         Light dirLight = FindOrCreateDirectionalLight();
-        dirLight.color = new Color(0.08f, 0.10f, 0.20f, 1f);
-        dirLight.intensity = 0.02f;
+        dirLight.color = new Color(0.05f, 0.06f, 0.15f, 1f);
+        dirLight.intensity = 0.005f;
         dirLight.shadows = LightShadows.Soft;
 
         // ============================
-        // 2. MATERIALS
+        // 2. CLEANUP OLD SIMPLE ROOM STRUCTURE
         // ============================
-        Material darkWallMat = FindOrCreateMaterial("Mat_DarkWall", new Color(0.06f, 0.06f, 0.07f));
-        Material darkFloorMat = FindOrCreateMaterial("Mat_DarkFloor", new Color(0.04f, 0.04f, 0.05f));
+        string[] oldObjects = { "Floor", "Ceiling", "Wall_Left", "Wall_Right", "Wall_Back", "Wall_Front", "Haunted_House" };
+        foreach (string name in oldObjects)
+        {
+            GameObject oldObj = GameObject.Find(name);
+            if (oldObj != null) Object.DestroyImmediate(oldObj);
+        }
+
+        // ============================
+        // 3. SPAWN SPOOKY TOWN MAP (Sci_Fi_Island)
+        // ============================
+        string islandPrefabPath = "Assets/Mnostva_Art/Flying_Sci_Fi_Island_city/Prefabs/island/Sci_Fi_Island.prefab";
+        GameObject islandObj = GameObject.Find("Sci_Fi_Island");
+        if (islandObj == null)
+        {
+            var islandPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(islandPrefabPath);
+            if (islandPrefab != null)
+            {
+                islandObj = (GameObject)PrefabUtility.InstantiatePrefab(islandPrefab);
+                islandObj.name = "Sci_Fi_Island";
+                islandObj.transform.position = Vector3.zero;
+                islandObj.transform.rotation = Quaternion.identity;
+                islandObj.transform.localScale = Vector3.one;
+            }
+            else
+            {
+                Debug.LogWarning($"Island Prefab not found at path: {islandPrefabPath}");
+            }
+        }
+
+        // ============================
+        // 4. MATERIALS & PALETTE
+        // ============================
+        Material woodMat = FindOrCreateMaterial("Mat_Wood", new Color(0.20f, 0.12f, 0.06f)); // Dark Wood
+        Material roofMat = FindOrCreateMaterial("Mat_Roof", new Color(0.12f, 0.12f, 0.14f)); // Dark Slate Grey
+        Material foundationMat = FindOrCreateMaterial("Mat_Stone", new Color(0.35f, 0.35f, 0.38f)); // Dark Stone
         Material bloodMat = FindOrCreateMaterial("Mat_Blood", new Color(0.5f, 0.02f, 0.02f));
-        Material woodMat = FindOrCreateMaterial("Mat_Wood", new Color(0.25f, 0.15f, 0.08f));
         Material greenGlowMat = FindOrCreateEmissiveMaterial("Mat_GreenGlow", new Color(0.1f, 0.8f, 0.1f), 3f);
-        Material candleMat = FindOrCreateEmissiveMaterial("Mat_Candle", new Color(1f, 0.7f, 0.2f), 2f);
-        Material ghostWhiteMat = FindOrCreateMaterial("Mat_GhostWhite", new Color(0.85f, 0.85f, 0.9f));
-        Material coffinMat = FindOrCreateMaterial("Mat_Coffin", new Color(0.18f, 0.10f, 0.05f));
+        Material candleMat = FindOrCreateEmissiveMaterial("Mat_Candle", new Color(1f, 0.7f, 0.2f), 2.5f);
+        Material scaryPurpleGlowMat = FindOrCreateEmissiveMaterial("Mat_PurpleGlow", new Color(0.6f, 0.1f, 0.8f), 3f);
 
         // ============================
-        // 3. ROOM STRUCTURE (smaller = scarier)
-        // ============================
-        float roomW = 12f, roomH = 4f, roomD = 14f;
-        GetOrCreateWall("Floor",      new Vector3(0, -0.05f, 0),           new Vector3(roomW, 0.1f, roomD), darkFloorMat);
-        GetOrCreateWall("Ceiling",    new Vector3(0, roomH + 0.05f, 0),    new Vector3(roomW, 0.1f, roomD), darkWallMat);
-        GetOrCreateWall("Wall_Left",  new Vector3(-roomW/2, roomH/2, 0),   new Vector3(0.2f, roomH, roomD), darkWallMat);
-        GetOrCreateWall("Wall_Right", new Vector3(roomW/2, roomH/2, 0),    new Vector3(0.2f, roomH, roomD), darkWallMat);
-        GetOrCreateWall("Wall_Back",  new Vector3(0, roomH/2, -roomD/2),   new Vector3(roomW, roomH, 0.2f), darkWallMat);
-        GetOrCreateWall("Wall_Front", new Vector3(0, roomH/2, roomD/2),    new Vector3(roomW, roomH, 0.2f), darkWallMat);
-
-        // ============================
-        // 4. ATMOSPHERIC LIGHTS
-        // ============================
-        CreatePointLight("Light_BloodRed",     new Vector3(0f, 3f, 0f),      new Color(0.8f, 0.1f, 0.05f), 2.5f, 10f);
-        CreatePointLight("Light_GhostGreen",   new Vector3(-4f, 3f, 4f),     new Color(0.15f, 0.7f, 0.15f), 1.5f, 8f);
-        CreatePointLight("Light_CandleWarm1",  new Vector3(4f, 2.2f, -5f),   new Color(1f, 0.6f, 0.2f), 1.2f, 5f);
-        CreatePointLight("Light_CandleWarm2",  new Vector3(-4f, 2.2f, -3f),  new Color(1f, 0.5f, 0.15f), 1.0f, 4f);
-        CreatePointLight("Light_WindowGreen",  new Vector3(5.7f, 3f, 2f),    new Color(0.2f, 0.9f, 0.2f), 2f, 6f);
-
-        // ============================
-        // 5. PLAYER
+        // 5. PLAYER PLACEMENT
         // ============================
         CleanupMainCamera();
         GameObject playerObj = SetupPlayer();
+        if (playerObj != null)
+        {
+            // Position player on street facing the Haunted House
+            playerObj.transform.position = new Vector3(0f, 1.5f, 0f);
+            playerObj.transform.eulerAngles = new Vector3(0f, 0f, 0f);
+        }
 
         // ============================
-        // 6. HORROR FURNITURE & PROPS
+        // 6. BUILD STYLIZED HAUNTED HOUSE (Hollow Room + Gothic Architecture)
         // ============================
+        // Positioned down the street
+        Vector3 housePosition = new Vector3(0f, 0.6f, 25f); 
+        GameObject hauntedHouseObj = CreateStylizedSpookyHouse(housePosition, woodMat, roofMat, candleMat, foundationMat);
 
         // --- Coffin (Peti Mati) ---
-        if (GameObject.Find("Coffin") == null)
+        // Spawned inside the Haunted House
+        GameObject coffinObj = GameObject.Find("Coffin");
+        if (coffinObj == null)
         {
-            GameObject coffin = new GameObject("Coffin");
-            coffin.transform.position = new Vector3(-3f, 0f, 4f);
-            coffin.transform.rotation = Quaternion.Euler(0, 15f, 0);
+            coffinObj = new GameObject("Coffin");
+            coffinObj.transform.position = new Vector3(-2f, 0.7f, 27f);
+            coffinObj.transform.rotation = Quaternion.Euler(0, 15f, 0);
+            
             // Base
             GameObject cBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cBase.name = "CoffinBase"; cBase.transform.SetParent(coffin.transform);
+            cBase.name = "CoffinBase"; cBase.transform.SetParent(coffinObj.transform);
             cBase.transform.localPosition = new Vector3(0, 0.2f, 0);
             cBase.transform.localScale = new Vector3(0.8f, 0.4f, 2f);
-            SetMaterial(cBase, coffinMat);
+            SetMaterial(cBase, woodMat);
+            
             // Lid (tilted open)
             GameObject cLid = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cLid.name = "CoffinLid"; cLid.transform.SetParent(coffin.transform);
+            cLid.name = "CoffinLid"; cLid.transform.SetParent(coffinObj.transform);
             cLid.transform.localPosition = new Vector3(-0.35f, 0.55f, 0);
             cLid.transform.localScale = new Vector3(0.05f, 0.8f, 2f);
             cLid.transform.localRotation = Quaternion.Euler(0, 0, 25f);
-            SetMaterial(cLid, coffinMat);
+            SetMaterial(cLid, woodMat);
         }
 
         // --- Broken Table (Meja Rusak) ---
         if (GameObject.Find("BrokenTable") == null)
         {
             GameObject table = new GameObject("BrokenTable");
-            table.transform.position = new Vector3(3f, 0f, -4f);
+            table.transform.position = new Vector3(2.2f, 0.7f, 24.5f);
+            
             // Top
             GameObject tTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
             tTop.name = "TableTop"; tTop.transform.SetParent(table.transform);
             tTop.transform.localPosition = new Vector3(0, 0.7f, 0);
-            tTop.transform.localScale = new Vector3(1.5f, 0.08f, 0.8f);
-            tTop.transform.localRotation = Quaternion.Euler(0, 0, 3f); // slightly tilted
+            tTop.transform.localScale = new Vector3(1.4f, 0.08f, 0.8f);
+            tTop.transform.localRotation = Quaternion.Euler(0, 0, 3f);
             SetMaterial(tTop, woodMat);
+            
             // Legs
-            CreateTableLeg(table.transform, "Leg1", new Vector3(-0.6f, 0.35f, 0.3f), woodMat);
-            CreateTableLeg(table.transform, "Leg2", new Vector3(0.6f, 0.35f, 0.3f), woodMat);
-            CreateTableLeg(table.transform, "Leg3", new Vector3(-0.6f, 0.35f, -0.3f), woodMat);
-            // Missing 4th leg = broken
+            CreateTableLeg(table.transform, "Leg1", new Vector3(-0.55f, 0.35f, 0.3f), woodMat);
+            CreateTableLeg(table.transform, "Leg2", new Vector3(0.55f, 0.35f, 0.3f), woodMat);
+            CreateTableLeg(table.transform, "Leg3", new Vector3(-0.55f, 0.35f, -0.3f), woodMat);
         }
 
         // --- Bookshelf (Rak Buku) ---
         if (GameObject.Find("Bookshelf") == null)
         {
             GameObject shelf = new GameObject("Bookshelf");
-            shelf.transform.position = new Vector3(-5.5f, 0f, -2f);
+            shelf.transform.position = new Vector3(-3.2f, 0.7f, 23.5f);
             shelf.transform.rotation = Quaternion.Euler(0, 90, 0);
-            // Back panel
+            
             GameObject sBack = GameObject.CreatePrimitive(PrimitiveType.Cube);
             sBack.name = "ShelfBack"; sBack.transform.SetParent(shelf.transform);
             sBack.transform.localPosition = new Vector3(0, 1.2f, -0.15f);
             sBack.transform.localScale = new Vector3(1.2f, 2.4f, 0.05f);
             SetMaterial(sBack, woodMat);
-            // Shelves
+            
             for (int i = 0; i < 4; i++)
             {
                 GameObject s = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -130,182 +155,178 @@ public class UAS_HorrorSceneSetup : EditorWindow
         }
 
         // --- Candles (Lilin) ---
-        CreateCandle("Candle_1", new Vector3(3f, 0.78f, -4f), candleMat);
-        CreateCandle("Candle_2", new Vector3(-5.5f, 1.85f, -2f), candleMat);
-        CreateCandle("Candle_3", new Vector3(0f, 0f, 5f), candleMat);
+        CreateCandle("Candle_1", new Vector3(2.2f, 1.48f, 24.5f), candleMat);
+        CreateCandle("Candle_2", new Vector3(-3.2f, 2.55f, 23.5f), candleMat);
+        CreateCandle("Candle_3", new Vector3(0f, 0.7f, 28f), candleMat);
 
-        // --- Glowing Window (Jendela Bercahaya Hijau) ---
+        // --- Glowing Window (Jendela Bercahaya Hijau di Dinding Belakang) ---
         if (GameObject.Find("GlowingWindow") == null)
         {
             GameObject window = new GameObject("GlowingWindow");
-            window.transform.position = new Vector3(5.85f, 2.8f, 2f);
-            // Frame
+            window.transform.position = new Vector3(0f, 3.1f, 28.95f);
+            window.transform.rotation = Quaternion.identity;
+            
             GameObject frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
             frame.name = "WindowFrame"; frame.transform.SetParent(window.transform);
             frame.transform.localPosition = Vector3.zero;
-            frame.transform.localScale = new Vector3(0.05f, 1.2f, 0.8f);
+            frame.transform.localScale = new Vector3(1.2f, 1.2f, 0.05f);
             SetMaterial(frame, woodMat);
-            // Glass
+            
             GameObject glass = GameObject.CreatePrimitive(PrimitiveType.Cube);
             glass.name = "WindowGlass"; glass.transform.SetParent(window.transform);
-            glass.transform.localPosition = new Vector3(-0.02f, 0, 0);
-            glass.transform.localScale = new Vector3(0.02f, 1f, 0.6f);
+            glass.transform.localPosition = new Vector3(0, 0, -0.02f);
+            glass.transform.localScale = new Vector3(1f, 1f, 0.02f);
             SetMaterial(glass, greenGlowMat);
-            // Cross bar
-            GameObject crossH = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            crossH.name = "CrossH"; crossH.transform.SetParent(window.transform);
-            crossH.transform.localPosition = new Vector3(-0.01f, 0, 0);
-            crossH.transform.localScale = new Vector3(0.06f, 0.05f, 0.6f);
-            SetMaterial(crossH, woodMat);
-            GameObject crossV = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            crossV.name = "CrossV"; crossV.transform.SetParent(window.transform);
-            crossV.transform.localPosition = new Vector3(-0.01f, 0, 0);
-            crossV.transform.localScale = new Vector3(0.06f, 1f, 0.05f);
-            SetMaterial(crossV, woodMat);
         }
 
-        // --- Blood Stains (Noda Darah di lantai) ---
-        CreateBloodStain("BloodStain_1", new Vector3(-1f, 0.01f, 2f), new Vector3(1.5f, 0.01f, 0.8f), bloodMat);
-        CreateBloodStain("BloodStain_2", new Vector3(2f, 0.01f, -1f), new Vector3(0.6f, 0.01f, 1.2f), bloodMat);
-        CreateBloodStain("BloodStain_3", new Vector3(-3f, 0.01f, 4.5f), new Vector3(0.8f, 0.01f, 0.5f), bloodMat);
+        // --- Blood Stains (Noda Darah) ---
+        CreateBloodStain("BloodStain_1", new Vector3(0f, 0.71f, 21f), new Vector3(1.5f, 0.01f, 0.8f), bloodMat);
+        CreateBloodStain("BloodStain_2", new Vector3(1.5f, 0.71f, 25f), new Vector3(0.8f, 0.01f, 1.2f), bloodMat);
+        CreateBloodStain("BloodStain_3", new Vector3(-2f, 0.71f, 27f), new Vector3(1.0f, 0.01f, 0.6f), bloodMat);
 
-        // ============================
-        // 7. MONSTER PREFABS FROM PROJECT (MANY!)
-        // ============================
-        
-        // --- Ghosts scattered around the room ---
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_Corner",       new Vector3(-5f, 0.5f, 6f),     new Vector3(0, 140, 0),  1.5f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_Ceiling",      new Vector3(2f, 3.2f, 0f),      new Vector3(0, -90, 0),  1.2f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost.prefab",       "Ghost_BehindYou",    new Vector3(0f, 0.5f, -6f),     new Vector3(0, 0, 0),    1.8f);
-        
-        // --- Skulls everywhere ---
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Shelf",   new Vector3(-5.5f, 1.3f, -2f),  Vector3.zero,            1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Floor1",  new Vector3(1.5f, 0.2f, 1f),    new Vector3(0, 90, 0),   0.7f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "GhostSkull_Table",   new Vector3(3f, 0.9f, -4f),     new Vector3(0, -30, 0),  0.6f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab",   "OrcSkull_Floor",     new Vector3(1f, 0.2f, 3f),      new Vector3(0, 45, 0),   0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab",   "OrcSkull_Coffin",    new Vector3(-2.5f, 0.5f, 4.5f), new Vector3(30, 0, 0),   0.6f);
-        
-        // --- Demons ---
-        SpawnPrefab("Assets/Monsters/Prefabs/Demon.prefab",       "Demon_Dark",         new Vector3(4f, 0f, 5.5f),      new Vector3(0, -90, 0),  1.2f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Blue Demon.prefab",  "BlueDemon_Coffin",   new Vector3(-3f, 0.5f, 4f),     new Vector3(0, 180, 0),  1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Demon Flying.prefab","DemonFlying_Ceil",   new Vector3(-2f, 3.5f, 3f),     new Vector3(0, 45, 0),   1f);
-        
-        // --- Creepy creatures ---
-        SpawnPrefab("Assets/Monsters/Prefabs/Dragon.prefab",      "Dragon_Guard",       new Vector3(5f, 0f, 0f),        new Vector3(0, -90, 0),  1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Squidle.prefab",     "Squidle_Lurk",       new Vector3(-4f, 0f, 0f),       new Vector3(0, 90, 0),   1.2f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom.prefab",    "Mushroom_Dark1",     new Vector3(-5f, 0f, 2f),       Vector3.zero,            0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom.prefab",    "Mushroom_Dark2",     new Vector3(-4.5f, 0f, 2.5f),   new Vector3(0, 30, 0),   0.6f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Mushroom Blob.prefab","MushroomBlob_Wall", new Vector3(5.3f, 0.5f, -3f),   new Vector3(0, -90, 0),  0.7f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ninja.prefab",       "Ninja_Shadow",       new Vector3(4.5f, 0f, -2f),     new Vector3(0, -135, 0), 1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Green Blob.prefab",  "GreenBlob_Slime1",   new Vector3(-1f, 0f, 5f),       Vector3.zero,            0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Green Blob.prefab",  "GreenBlob_Slime2",   new Vector3(-1.5f, 0f, 5.5f),   new Vector3(0, 60, 0),   0.5f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Pink Blob.prefab",   "PinkBlob_Guts",      new Vector3(2f, 0f, 5f),        Vector3.zero,            0.6f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Wizard Blob.prefab", "WizardBlob_Altar",   new Vector3(0f, 0f, 6f),        new Vector3(0, 180, 0),  0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Yeti.prefab",        "Yeti_BigScare",      new Vector3(-4f, 0f, -5f),      new Vector3(0, 45, 0),   1.5f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Frog.prefab",        "Frog_Creepy",        new Vector3(3f, 0f, 1f),        new Vector3(0, -60, 0),  0.8f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Goleing.prefab",     "Golem_Guard",        new Vector3(-2f, 0f, -4f),      new Vector3(0, 0, 0),    1.2f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Alien.prefab",       "Alien_Lurking",      new Vector3(3f, 0f, -6f),       new Vector3(0, 160, 0),  1f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Cat Blob.prefab",    "CatBlob_Creepy",     new Vector3(-5f, 1.3f, -1f),    Vector3.zero,            0.5f);
-        SpawnPrefab("Assets/Monsters/Prefabs/Ninja Blob.prefab",  "NinjaBlob_Hide",     new Vector3(5f, 0.3f, 3f),      new Vector3(0, -90, 0),  0.6f);
-        
-        // --- Zombies ---
-        SpawnPrefab("Assets/Zombie/Prefabs/Zombie1.prefab",       "Zombie_Door",        new Vector3(0f, 0f, 6f),        new Vector3(0, 180, 0),  0.01f);
-        SpawnPrefab("Assets/Zombie/Prefabs/Zombie2.prefab",       "Zombie_Corner",      new Vector3(5f, 0f, -5f),       new Vector3(0, -45, 0),  0.01f);
-        SpawnPrefab("Assets/Zombie/Prefabs/Zombie3.prefab",       "Zombie_Ambush",      new Vector3(-5f, 0f, -6f),      new Vector3(0, 30, 0),   0.01f);
-        SpawnPrefab("Assets/Zombie/FBXs/Zombie_1_Complete.prefab","Zombie_Lying",       new Vector3(2f, 0f, -3f),       new Vector3(90, 0, 0),   0.01f);
-        SpawnPrefab("Assets/Zombie/FBXs/Zombie_2_Complete.prefab","Zombie_Crawl",       new Vector3(-1f, 0f, -2f),      new Vector3(30, 90, 0),  0.01f);
-        
-        // ============================
-        // 7.5. EXTRA HORROR PROPS
-        // ============================
-        
-        // --- Skull Pile (tumpukan tengkorak) ---
-        if (GameObject.Find("SkullPile") == null)
-        {
-            var pile = new GameObject("SkullPile");
-            pile.transform.position = new Vector3(4f, 0f, 4f);
-            for (int i = 0; i < 5; i++)
-            {
-                var skull = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                skull.name = $"Skull_{i}"; skull.transform.SetParent(pile.transform);
-                skull.transform.localPosition = new Vector3(Random.Range(-0.3f, 0.3f), i * 0.15f, Random.Range(-0.3f, 0.3f));
-                skull.transform.localScale = Vector3.one * Random.Range(0.18f, 0.28f);
-                SetMaterial(skull, FindOrCreateMaterial("Mat_Bone", new Color(0.85f, 0.8f, 0.7f)));
-            }
-        }
-
-        // --- Hanging Chains (rantai menggantung) ---
+        // --- Hanging Chains & Spiderwebs ---
         Material chainMat = FindOrCreateMaterial("Mat_Chain", new Color(0.3f, 0.3f, 0.32f));
-        CreateHangingChain("Chain_1", new Vector3(-2f, 4f, 1f), 2.5f, chainMat);
-        CreateHangingChain("Chain_2", new Vector3(3f, 4f, 3f), 1.8f, chainMat);
-        CreateHangingChain("Chain_3", new Vector3(0f, 4f, -3f), 3f, chainMat);
+        CreateHangingChain("Chain_1", new Vector3(-1f, 5.0f, 26f), 2.2f, chainMat);
+        CreateHangingChain("Chain_2", new Vector3(2f, 5.0f, 27f), 1.8f, chainMat);
         
-        // --- Spider Web Corners (sarang laba-laba di pojok) ---
         Material webMat = FindOrCreateMaterial("Mat_SpiderWeb", new Color(0.9f, 0.9f, 0.9f, 0.3f));
-        CreateSpiderWeb("Web_1", new Vector3(-5.8f, 3.8f, -6.8f), webMat);
-        CreateSpiderWeb("Web_2", new Vector3(5.8f, 3.8f, -6.8f), webMat);
-        CreateSpiderWeb("Web_3", new Vector3(5.8f, 3.8f, 6.8f), webMat);
-        CreateSpiderWeb("Web_4", new Vector3(-5.8f, 3.8f, 6.8f), webMat);
-        
-        // --- Broken Mirror (cermin pecah) ---
-        if (GameObject.Find("BrokenMirror") == null)
-        {
-            Material mirrorMat = FindOrCreateEmissiveMaterial("Mat_Mirror", new Color(0.5f, 0.5f, 0.6f), 0.5f);
-            var mirror = new GameObject("BrokenMirror");
-            mirror.transform.position = new Vector3(5.85f, 2f, -3f);
-            // Frame
-            var mFrame = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            mFrame.name = "MirrorFrame"; mFrame.transform.SetParent(mirror.transform);
-            mFrame.transform.localPosition = Vector3.zero;
-            mFrame.transform.localScale = new Vector3(0.05f, 1.5f, 1f);
-            SetMaterial(mFrame, woodMat);
-            // Glass shards
-            for (int i = 0; i < 4; i++)
-            {
-                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                shard.name = $"Shard_{i}"; shard.transform.SetParent(mirror.transform);
-                shard.transform.localPosition = new Vector3(-0.02f, Random.Range(-0.5f, 0.5f), Random.Range(-0.3f, 0.3f));
-                shard.transform.localScale = new Vector3(0.01f, Random.Range(0.2f, 0.6f), Random.Range(0.15f, 0.4f));
-                shard.transform.localRotation = Quaternion.Euler(0, 0, Random.Range(-15f, 15f));
-                SetMaterial(shard, mirrorMat);
-            }
-        }
-        
-        // --- Ritual Circle (lingkaran ritual di lantai) ---
+        CreateSpiderWeb("Web_1", new Vector3(-3.2f, 4.8f, 21.8f), webMat);
+        CreateSpiderWeb("Web_2", new Vector3(3.2f, 4.8f, 27.8f), webMat);
+
+        // --- Ritual Circle (Lingkaran Ritual di Rumah Hantu) ---
         if (GameObject.Find("RitualCircle") == null)
         {
             Material ritualMat = FindOrCreateEmissiveMaterial("Mat_Ritual", new Color(0.8f, 0.1f, 0.1f), 1.5f);
             var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             circle.name = "RitualCircle";
-            circle.transform.position = new Vector3(0f, 0.01f, 2f);
+            circle.transform.position = new Vector3(0f, 0.71f, 25.5f);
             circle.transform.localScale = new Vector3(2.5f, 0.005f, 2.5f);
             SetMaterial(circle, ritualMat);
-            // Ritual candles around circle
+            
+            // Candles around circle
             for (int i = 0; i < 5; i++)
             {
                 float angle = i * (360f / 5f) * Mathf.Deg2Rad;
-                Vector3 pos = new Vector3(Mathf.Cos(angle) * 1.3f, 0f, 2f + Mathf.Sin(angle) * 1.3f);
+                Vector3 pos = new Vector3(Mathf.Cos(angle) * 1.3f, 0.7f, 25.5f + Mathf.Sin(angle) * 1.3f);
                 CreateCandle($"RitualCandle_{i}", pos, candleMat);
             }
         }
-        
-        // --- Extra blood stains ---
-        CreateBloodStain("BloodStain_4", new Vector3(0f, 0.01f, -5f), new Vector3(2f, 0.01f, 1f), bloodMat);
-        CreateBloodStain("BloodStain_5", new Vector3(-4f, 0.01f, -4f), new Vector3(0.5f, 0.01f, 1.5f), bloodMat);
-        CreateBloodStain("BloodTrail", new Vector3(3f, 0.01f, 0f), new Vector3(0.3f, 0.01f, 4f), bloodMat);
-        
-        // --- Extra eerie lights ---
-        CreatePointLight("Light_RitualRed",    new Vector3(0f, 0.5f, 2f),     new Color(0.9f, 0.05f, 0.05f), 1.5f, 4f);
-        CreatePointLight("Light_CornerPurple", new Vector3(-5f, 1f, -6f),     new Color(0.4f, 0.1f, 0.6f),   1f, 5f);
-        CreatePointLight("Light_ZombieBlue",   new Vector3(5f, 1f, -5f),      new Color(0.1f, 0.2f, 0.5f),   0.8f, 4f);
 
         // ============================
-        // 8. WORLD SPACE CANVAS UI
+        // 7. EERIE TOWN LIGHTING & DECORATIONS
+        // ============================
+        CreatePointLight("StreetLightSpooky_1", new Vector3(4f, 4f, 6f), new Color(0.8f, 0.2f, 0.1f), 2.5f, 12f); // Creepy Orange
+        CreatePointLight("StreetLightSpooky_2", new Vector3(-4f, 4f, 15f), new Color(0.5f, 0.1f, 0.8f), 2.5f, 12f); // Spooky Purple
+        CreatePointLight("StreetLightSpooky_3", new Vector3(4f, 4f, 20f), new Color(0.1f, 0.8f, 0.2f), 3.0f, 15f); // Toxic Green at Haunted House Gate
+
+        // Ambient Spooky lights inside/outside Haunted House
+        CreatePointLight("Light_RitualRed", new Vector3(0f, 1.3f, 25.5f), new Color(0.9f, 0.05f, 0.05f), 1.8f, 8f);
+        CreatePointLight("Light_SpookyGreen_Int", new Vector3(0f, 3.1f, 28.5f), new Color(0.1f, 0.9f, 0.1f), 1.5f, 6f);
+        CreatePointLight("Light_Purple_Upper", new Vector3(0f, 4.5f, 25f), new Color(0.6f, 0.1f, 0.8f), 2.0f, 10f);
+
+        // ============================
+        // 8. INTERACTIVE GHOSTS & MONSTERS
+        // ============================
+        string ghostPrefabPath = "Assets/Monsters/Prefabs/Ghost.prefab";
+        
+        // --- 1. HANTU PENJAGA (Spawns outside, has Dialogue and Vanishes) ---
+        GameObject guardGhost = GameObject.Find("Hantu_Penjaga");
+        if (guardGhost == null)
+        {
+            var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ghostPrefabPath);
+            if (ghostPrefab != null)
+            {
+                guardGhost = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
+                guardGhost.name = "Hantu_Penjaga";
+                guardGhost.transform.position = new Vector3(0f, 1.0f, 17f); // In front of house gate porch
+                guardGhost.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // Face the approaching player
+                guardGhost.transform.localScale = Vector3.one * 1.5f;
+
+                // Configure interaction
+                var interactable = guardGhost.AddComponent<UAS_HorrorInteractable>();
+                interactable.objectName = "Hantu Penjaga Gerbang";
+                interactable.isGhostNPC = true;
+                interactable.dialogueLines = new string[] {
+                    "Hantu Penjaga: Hentikan langkahmu, pengembara fana...",
+                    "Hantu Penjaga: Rumah gothic di belakangku dipenuhi aura iblis jahat.",
+                    "Hantu Penjaga: Jika kamu berani memasukinya, carilah jalan untuk membebaskan mereka.",
+                    "Hantu Penjaga: Ambillah senjata laci di bunker jika kamu butuh bertahan hidup!",
+                    "Hantu Penjaga: Sekarang, jalan masuk telah terbuka. Masuklah jika kamu bernyali..."
+                };
+                interactable.vanishAfterInteract = true;
+                interactable.vanishDelay = 0.5f;
+                interactable.floatAndRotate = true;
+                interactable.floatSpeed = 2f;
+                interactable.floatHeight = 0.2f;
+
+                // Add box collider for interaction
+                var bc = guardGhost.AddComponent<BoxCollider>();
+                bc.center = new Vector3(0, 0.5f, 0);
+                bc.size = new Vector3(1.2f, 1.8f, 1.2f);
+            }
+        }
+
+        // --- 2. GHOST BOSS / ARWAH UTAMA (Inside Haunted House, Dialogue + Clue) ---
+        GameObject mainGhost = GameObject.Find("Arwah_Penasaran");
+        if (mainGhost == null)
+        {
+            var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ghostPrefabPath);
+            if (ghostPrefab != null)
+            {
+                mainGhost = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
+                mainGhost.name = "Arwah_Penasaran";
+                mainGhost.transform.position = new Vector3(0f, 1.5f, 25.5f); // Center of ritual circle
+                mainGhost.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                mainGhost.transform.localScale = Vector3.one * 1.8f;
+
+                // Change color of boss ghost to look spookier (glow purple)
+                var meshRenderer = mainGhost.GetComponentInChildren<Renderer>();
+                if (meshRenderer != null)
+                {
+                    meshRenderer.sharedMaterial = scaryPurpleGlowMat;
+                }
+
+                // Configure interaction
+                var interactable = mainGhost.AddComponent<UAS_HorrorInteractable>();
+                interactable.objectName = "Arwah Penasaran";
+                interactable.isGhostNPC = true;
+                interactable.dialogueLines = new string[] {
+                    "Arwah Penasaran: Tolong... bebaskan aku dari kutukan ritual altar ini...",
+                    "Arwah Penasaran: Energi jahat dari peti mati di sudut ruangan membelengguku.",
+                    "Arwah Penasaran: Peti mati tersebut terkunci oleh mantra kuno.",
+                    "Arwah Penasaran: Dekati peti mati untuk memicu zona altar agar mantra tersebut melemah!",
+                    "Arwah Penasaran: Lekaslah!"
+                };
+                interactable.vanishAfterInteract = false;
+                interactable.floatAndRotate = true;
+                interactable.floatSpeed = 1f;
+                interactable.floatHeight = 0.25f;
+
+                var bc = mainGhost.AddComponent<BoxCollider>();
+                bc.center = new Vector3(0, 0.5f, 0);
+                bc.size = new Vector3(1.4f, 2.0f, 1.4f);
+            }
+        }
+
+        // --- 3. WANDERING ZOMBIES & EXTRA MONSTERS ---
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "SpookySkull_1", new Vector3(-2f, 0.8f, 13f), new Vector3(0, 45, 0), 1f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "SpookySkull_2", new Vector3(3.2f, 1.5f, 24f), new Vector3(0, -90, 0), 0.8f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Orc Skull.prefab", "SpookySkull_3", new Vector3(-1.8f, 1.1f, 26f), new Vector3(15, 0, 0), 0.8f);
+        
+        SpawnPrefab("Assets/Monsters/Prefabs/Demon.prefab", "LurkingDemon", new Vector3(-6f, 0.6f, 18f), new Vector3(0, 90, 0), 1.2f);
+        SpawnPrefab("Assets/Monsters/Prefabs/Demon Flying.prefab", "RoofDemon", new Vector3(3f, 6.5f, 22f), new Vector3(0, 200, 0), 1.3f);
+        
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie1.prefab", "StreetZombie_1", new Vector3(5f, 0.6f, 15f), new Vector3(0, -90, 0), 0.01f);
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie2.prefab", "StreetZombie_2", new Vector3(-5f, 0.6f, 8f), new Vector3(0, 90, 0), 0.01f);
+        SpawnPrefab("Assets/Zombie/Prefabs/Zombie3.prefab", "InteriorZombie_3", new Vector3(-2.8f, 0.7f, 24f), new Vector3(0, 120, 0), 0.01f);
+
+        // ============================
+        // 9. WORLD SPACE UI CANVAS SETUP
         // ============================
         SetupWorldSpaceCanvas();
 
         // ============================
-        // 9. HORROR MANAGER & INTERACTABLES
+        // 10. SYSTEM MANAGER LINKING & TRIGGER ZONES
         // ============================
         SetupHorrorManager(playerObj);
 
@@ -313,13 +334,176 @@ public class UAS_HorrorSceneSetup : EditorWindow
         // DONE
         // ============================
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-        Debug.Log("Haunted House Scene setup complete!");
-        EditorUtility.DisplayDialog("UAS Horror Setup",
-            "Haunted House Scene fully populated!\n\n" +
-            "Added: Ghost, Demon, Zombie, Ghost Skull, Orc Skull,\n" +
-            "Coffin, Broken Table, Bookshelf, Candles,\n" +
-            "Glowing Window, Blood Stains, and atmospheric fog.\n\n" +
+        Debug.Log("Haunted Spooky Town Scene setup complete!");
+        EditorUtility.DisplayDialog("UAS Spooky Town Setup",
+            "Stylized Haunted House & Spooky Town successfully constructed!\n\n" +
+            "Created custom wooden gothic house layout with pointed gables and spires,\n" +
+            "Spooky island map, interactive dialog ghosts, candles, and zombies.\n\n" +
             "Press Ctrl+S to save, then Play to test!", "OK");
+    }
+
+    // ===== GOTHIC HOUSE BUILDER METHOD =====
+    static GameObject CreateStylizedSpookyHouse(Vector3 position, Material woodMat, Material roofMat, Material windowMat, Material foundationMat)
+    {
+        GameObject house = new GameObject("Haunted_House");
+        house.transform.position = position;
+        house.transform.rotation = Quaternion.identity;
+
+        // 1. Foundation (Stone base)
+        GameObject fd = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        fd.name = "Foundation"; fd.transform.SetParent(house.transform);
+        fd.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+        fd.transform.localScale = new Vector3(8.2f, 0.1f, 8.2f);
+        SetMaterial(fd, foundationMat);
+
+        // 2. Hollow Room Walls (Allows player to walk inside)
+        // Floor
+        GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        floor.name = "Floor"; floor.transform.SetParent(house.transform);
+        floor.transform.localPosition = new Vector3(0f, 0.1f, 0f);
+        floor.transform.localScale = new Vector3(8f, 0.05f, 8f);
+        SetMaterial(floor, woodMat);
+
+        // Ceiling
+        GameObject ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        ceiling.name = "Ceiling"; ceiling.transform.SetParent(house.transform);
+        ceiling.transform.localPosition = new Vector3(0f, 4.45f, 0f);
+        ceiling.transform.localScale = new Vector3(8f, 0.1f, 8f);
+        SetMaterial(ceiling, woodMat);
+
+        // Wall Left
+        GameObject wallL = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallL.name = "Wall_Left"; wallL.transform.SetParent(house.transform);
+        wallL.transform.localPosition = new Vector3(-4f, 2.25f, 0f);
+        wallL.transform.localScale = new Vector3(0.1f, 4.3f, 8f);
+        SetMaterial(wallL, woodMat);
+
+        // Wall Right
+        GameObject wallR = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallR.name = "Wall_Right"; wallR.transform.SetParent(house.transform);
+        wallR.transform.localPosition = new Vector3(4f, 2.25f, 0f);
+        wallR.transform.localScale = new Vector3(0.1f, 4.3f, 8f);
+        SetMaterial(wallR, woodMat);
+
+        // Wall Back
+        GameObject wallB = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallB.name = "Wall_Back"; wallB.transform.SetParent(house.transform);
+        wallB.transform.localPosition = new Vector3(0f, 2.25f, 4f);
+        wallB.transform.localScale = new Vector3(8f, 4.3f, 0.1f);
+        SetMaterial(wallB, woodMat);
+
+        // Wall Front (Constructed in pieces to create a doorway opening at the center)
+        GameObject wallFL = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallFL.name = "Wall_Front_Left"; wallFL.transform.SetParent(house.transform);
+        wallFL.transform.localPosition = new Vector3(-2.5f, 2.25f, -4f);
+        wallFL.transform.localScale = new Vector3(3f, 4.3f, 0.1f);
+        SetMaterial(wallFL, woodMat);
+
+        GameObject wallFR = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallFR.name = "Wall_Front_Right"; wallFR.transform.SetParent(house.transform);
+        wallFR.transform.localPosition = new Vector3(2.5f, 2.25f, -4f);
+        wallFR.transform.localScale = new Vector3(3f, 4.3f, 0.1f);
+        SetMaterial(wallFR, woodMat);
+
+        GameObject wallFT = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallFT.name = "Wall_Front_Top"; wallFT.transform.SetParent(house.transform);
+        wallFT.transform.localPosition = new Vector3(0f, 3.65f, -4f);
+        wallFT.transform.localScale = new Vector3(2f, 1.5f, 0.1f);
+        SetMaterial(wallFT, woodMat);
+
+        // 3. A-Frame Gothic Roof (Large Left and Right angled slabs)
+        GameObject roofL = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        roofL.name = "Gothic_Roof_Left"; roofL.transform.SetParent(house.transform);
+        roofL.transform.localPosition = new Vector3(-2.8f, 6.2f, 0f);
+        roofL.transform.localScale = new Vector3(0.2f, 6.4f, 8.8f);
+        roofL.transform.localRotation = Quaternion.Euler(0f, 0f, 32f);
+        SetMaterial(roofL, roofMat);
+
+        GameObject roofR = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        roofR.name = "Gothic_Roof_Right"; roofR.transform.SetParent(house.transform);
+        roofR.transform.localPosition = new Vector3(2.8f, 6.2f, 0f);
+        roofR.transform.localScale = new Vector3(0.2f, 6.4f, 8.8f);
+        roofR.transform.localRotation = Quaternion.Euler(0f, 0f, -32f);
+        SetMaterial(roofR, roofMat);
+
+        // 4. Side Gothic High Tower (spire tower on the right)
+        GameObject bodyTower = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        bodyTower.name = "High_Tower_Body"; bodyTower.transform.SetParent(house.transform);
+        bodyTower.transform.localPosition = new Vector3(4.1f, 4.25f, 0f);
+        bodyTower.transform.localScale = new Vector3(2.0f, 8.3f, 2.0f);
+        SetMaterial(bodyTower, woodMat);
+
+        // Tower Roof Spire Base
+        GameObject tRoofBase = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        tRoofBase.name = "Tower_Roof_Base"; tRoofBase.transform.SetParent(house.transform);
+        tRoofBase.transform.localPosition = new Vector3(4.1f, 8.45f, 0f);
+        tRoofBase.transform.localScale = new Vector3(2.2f, 0.2f, 2.2f);
+        SetMaterial(tRoofBase, roofMat);
+
+        // Stepped Spire segments to form a pointed tower roof programmatically
+        for (int i = 0; i < 5; i++)
+        {
+            float stepScale = 1.8f - i * 0.35f;
+            GameObject spireStep = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            spireStep.name = $"Spire_Step_{i}"; spireStep.transform.SetParent(house.transform);
+            spireStep.transform.localPosition = new Vector3(4.1f, 8.75f + i * 0.5f, 0f);
+            spireStep.transform.localScale = new Vector3(stepScale, 0.5f, stepScale);
+            spireStep.transform.localRotation = Quaternion.Euler(0f, i * 15f, 0f);
+            SetMaterial(spireStep, roofMat);
+        }
+        // Metal tip
+        GameObject tip = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        tip.name = "Spire_Metal_Tip"; tip.transform.SetParent(house.transform);
+        tip.transform.localPosition = new Vector3(4.1f, 11.25f, 0f);
+        tip.transform.localScale = new Vector3(0.12f, 0.6f, 0.12f);
+        SetMaterial(tip, roofMat);
+
+        // 5. Front Spooky Porch
+        // Porch Deck
+        GameObject porchDeck = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        porchDeck.name = "Porch_Deck"; porchDeck.transform.SetParent(house.transform);
+        porchDeck.transform.localPosition = new Vector3(0f, 0.1f, -4.9f);
+        porchDeck.transform.localScale = new Vector3(4.5f, 0.15f, 1.8f);
+        SetMaterial(porchDeck, foundationMat);
+
+        // Porch Support Pillars
+        CreatePillar(house.transform, "Porch_Pillar_L", new Vector3(-2.0f, 1.15f, -5.6f), woodMat);
+        CreatePillar(house.transform, "Porch_Pillar_R", new Vector3(2.0f, 1.15f, -5.6f), woodMat);
+
+        // Porch Roof
+        GameObject porchRoof = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        porchRoof.name = "Porch_Roof"; porchRoof.transform.SetParent(house.transform);
+        porchRoof.transform.localPosition = new Vector3(0f, 2.2f, -4.9f);
+        porchRoof.transform.localScale = new Vector3(4.7f, 0.15f, 2.0f);
+        porchRoof.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
+        SetMaterial(porchRoof, roofMat);
+
+        // 6. Glowing Windows (Emissive Yellow)
+        // Main Front Window (pointed double-stacked window)
+        CreateWindow(house.transform, "Win_Front_1", new Vector3(-2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
+        CreateWindow(house.transform, "Win_Front_2", new Vector3(2.2f, 2.2f, -4.06f), new Vector3(0.6f, 1.0f, 0.05f), windowMat);
+        
+        // Gable Front Window
+        CreateWindow(house.transform, "Win_Front_Gable_1", new Vector3(0f, 4.8f, -3.9f), new Vector3(0.6f, 1.2f, 0.05f), windowMat);
+        CreateWindow(house.transform, "Win_Front_Gable_2", new Vector3(0f, 5.4f, -3.9f), new Vector3(0.4f, 0.4f, 0.05f), windowMat);
+
+        // Tower Windows
+        CreateWindow(house.transform, "Win_Tower_Front", new Vector3(4.1f, 5.2f, -1.05f), new Vector3(0.5f, 1.0f, 0.05f), windowMat);
+        CreateWindow(house.transform, "Win_Tower_Side_R1", new Vector3(5.15f, 4.0f, 0f), new Vector3(0.05f, 1.0f, 0.5f), windowMat);
+        CreateWindow(house.transform, "Win_Tower_Side_R2", new Vector3(5.15f, 5.6f, 0f), new Vector3(0.05f, 0.8f, 0.5f), windowMat);
+
+        // Left Side Windows
+        CreateWindow(house.transform, "Win_Side_L1", new Vector3(-4.06f, 2.0f, 1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
+        CreateWindow(house.transform, "Win_Side_L2", new Vector3(-4.06f, 2.0f, -1.5f), new Vector3(0.05f, 0.8f, 0.6f), windowMat);
+
+        // 7. Stone Chimney
+        GameObject chimney = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        chimney.name = "Stone_Chimney"; chimney.transform.SetParent(house.transform);
+        chimney.transform.localPosition = new Vector3(-3.2f, 6.2f, 2.2f);
+        chimney.transform.localScale = new Vector3(0.6f, 2.2f, 0.6f);
+        SetMaterial(chimney, foundationMat);
+
+        return house;
     }
 
     // ===== HELPER METHODS =====
@@ -369,21 +553,6 @@ public class UAS_HorrorSceneSetup : EditorWindow
         return mat;
     }
 
-    static GameObject GetOrCreateWall(string name, Vector3 pos, Vector3 scale, Material mat)
-    {
-        GameObject obj = GameObject.Find(name);
-        if (obj == null)
-        {
-            obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            obj.name = name;
-        }
-        obj.transform.position = pos;
-        obj.transform.localScale = scale;
-        obj.isStatic = true;
-        SetMaterial(obj, mat);
-        return obj;
-    }
-
     static void SetMaterial(GameObject obj, Material mat)
     {
         MeshRenderer mr = obj.GetComponent<MeshRenderer>();
@@ -392,9 +561,13 @@ public class UAS_HorrorSceneSetup : EditorWindow
 
     static void CreatePointLight(string name, Vector3 pos, Color color, float intensity, float range)
     {
-        if (GameObject.Find(name) != null) return;
-        var obj = new GameObject(name);
-        var l = obj.AddComponent<Light>();
+        GameObject obj = GameObject.Find(name);
+        if (obj == null)
+        {
+            obj = new GameObject(name);
+        }
+        var l = obj.GetComponent<Light>();
+        if (l == null) l = obj.AddComponent<Light>();
         l.type = LightType.Point;
         l.color = color;
         l.intensity = intensity;
@@ -417,13 +590,13 @@ public class UAS_HorrorSceneSetup : EditorWindow
         if (GameObject.Find(name) != null) return;
         var candle = new GameObject(name);
         candle.transform.position = pos;
-        // Stick
+        
         var stick = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         stick.name = "Stick"; stick.transform.SetParent(candle.transform);
         stick.transform.localPosition = new Vector3(0, 0.15f, 0);
         stick.transform.localScale = new Vector3(0.06f, 0.15f, 0.06f);
         SetMaterial(stick, mat);
-        // Flame light
+        
         var flameObj = new GameObject("FlameLight");
         flameObj.transform.SetParent(candle.transform);
         flameObj.transform.localPosition = new Vector3(0, 0.35f, 0);
@@ -477,9 +650,9 @@ public class UAS_HorrorSceneSetup : EditorWindow
 
         var player = new GameObject("Player");
         player.tag = "Player";
-        player.transform.position = new Vector3(0f, 1f, -5f);
         var cc = player.AddComponent<CharacterController>();
-        cc.height = 2f; cc.radius = 0.3f;
+        cc.height = 2f; cc.radius = 0.4f;
+        cc.center = new Vector3(0f, 1f, 0f);
         player.AddComponent<UAS_SimpleFPSController>();
 
         var camObj = new GameObject("PlayerCamera");
@@ -496,33 +669,38 @@ public class UAS_HorrorSceneSetup : EditorWindow
 
     static void SetupWorldSpaceCanvas()
     {
-        if (GameObject.Find("UAS_WorldSpaceCanvas") != null) return;
-        var canvasObj = new GameObject("UAS_WorldSpaceCanvas");
-        var canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.WorldSpace;
-        var rect = canvasObj.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(800, 400);
-        rect.localScale = Vector3.one * 0.005f;
-        rect.localPosition = new Vector3(0f, 2.5f, 6.85f);
+        var canvasObj = GameObject.Find("UAS_WorldSpaceCanvas");
+        if (canvasObj == null)
+        {
+            canvasObj = new GameObject("UAS_WorldSpaceCanvas");
+            var canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            var rect = canvasObj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(800, 400);
+            rect.localScale = Vector3.one * 0.003f;
+            // Positioned right in front of the Haunted House gate porch
+            rect.localPosition = new Vector3(0f, 2.8f, 16f);
+            rect.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
-        canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
-        canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
+            canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
-        var statusObj = new GameObject("StatusText");
-        statusObj.transform.SetParent(canvasObj.transform, false);
-        var sTMP = statusObj.AddComponent<TextMeshProUGUI>();
-        sTMP.text = "Explore the horror zone...";
-        sTMP.fontSize = 45; sTMP.alignment = TextAlignmentOptions.Center;
-        statusObj.GetComponent<RectTransform>().sizeDelta = new Vector2(750, 150);
-        statusObj.GetComponent<RectTransform>().localPosition = new Vector3(0, 80, 0);
+            var statusObj = new GameObject("StatusText");
+            statusObj.transform.SetParent(canvasObj.transform, false);
+            var sTMP = statusObj.AddComponent<TextMeshProUGUI>();
+            sTMP.text = "Explore the horror zone...";
+            sTMP.fontSize = 35; sTMP.alignment = TextAlignmentOptions.Center;
+            statusObj.GetComponent<RectTransform>().sizeDelta = new Vector2(750, 150);
+            statusObj.GetComponent<RectTransform>().localPosition = new Vector3(0, 80, 0);
 
-        var promptObj = new GameObject("PromptText");
-        promptObj.transform.SetParent(canvasObj.transform, false);
-        var pTMP = promptObj.AddComponent<TextMeshProUGUI>();
-        pTMP.text = ""; pTMP.color = Color.yellow;
-        pTMP.fontSize = 35; pTMP.alignment = TextAlignmentOptions.Center;
-        promptObj.GetComponent<RectTransform>().sizeDelta = new Vector2(750, 100);
-        promptObj.GetComponent<RectTransform>().localPosition = new Vector3(0, -60, 0);
+            var promptObj = new GameObject("PromptText");
+            promptObj.transform.SetParent(canvasObj.transform, false);
+            var pTMP = promptObj.AddComponent<TextMeshProUGUI>();
+            pTMP.text = ""; pTMP.color = Color.yellow;
+            pTMP.fontSize = 28; pTMP.alignment = TextAlignmentOptions.Center;
+            promptObj.GetComponent<RectTransform>().sizeDelta = new Vector2(750, 100);
+            promptObj.GetComponent<RectTransform>().localPosition = new Vector3(0, -60, 0);
+        }
     }
 
     static void SetupHorrorManager(GameObject playerObj)
@@ -547,54 +725,33 @@ public class UAS_HorrorSceneSetup : EditorWindow
             if (cam != null) sys.cameraTransform = cam.transform;
         }
 
-        // Interactable: Ghost
-        var ghost = GameObject.Find("Ghost_Corner");
-        if (ghost != null && ghost.GetComponent<UAS_HorrorInteractable>() == null)
-        {
-            var i = ghost.AddComponent<UAS_HorrorInteractable>();
-            i.objectName = "Hantu Pojok"; i.requiresTriggerZone = false;
-        }
-
         // Interactable: Coffin
         var coffin = GameObject.Find("Coffin");
         if (coffin != null && coffin.GetComponent<UAS_HorrorInteractable>() == null)
         {
             var ci = coffin.AddComponent<UAS_HorrorInteractable>();
-            ci.objectName = "Peti Mati Misterius"; ci.requiresTriggerZone = true;
-            // Add collider for raycast
-            var col = coffin.AddComponent<BoxCollider>();
-            col.size = new Vector3(1f, 0.6f, 2.2f);
-            col.center = new Vector3(0, 0.3f, 0);
+            ci.objectName = "Peti Mati Misterius";
+            ci.requiresTriggerZone = true;
+            ci.floatAndRotate = false;
+
+            var col = coffin.GetComponent<BoxCollider>();
+            if (col == null) col = coffin.AddComponent<BoxCollider>();
+            col.size = new Vector3(1.2f, 0.8f, 2.4f);
+            col.center = new Vector3(0, 0.4f, 0);
         }
 
-        // Trigger zone near coffin
+        // Trigger zone near coffin (altar trigger)
         if (GameObject.Find("TriggerZone_Coffin") == null)
         {
             var tz = new GameObject("TriggerZone_Coffin");
-            tz.transform.position = new Vector3(-3f, 1f, 3f);
+            tz.transform.position = new Vector3(0f, 1f, 25.5f); // Surrounding the altar
             var bc = tz.AddComponent<BoxCollider>();
-            bc.isTrigger = true; bc.size = new Vector3(4f, 3f, 4f);
+            bc.isTrigger = true; 
+            bc.size = new Vector3(4f, 3f, 4f);
+            
             var tzs = tz.AddComponent<UAS_HorrorTriggerZone>();
-            tzs.zoneName = "Area Peti Mati"; tzs.horrorSystem = sys;
-        }
-
-        // Interactable: Demon
-        var demon = GameObject.Find("Demon_Dark");
-        if (demon != null && demon.GetComponent<UAS_HorrorInteractable>() == null)
-        {
-            var di = demon.AddComponent<UAS_HorrorInteractable>();
-            di.objectName = "Iblis Kegelapan"; di.requiresTriggerZone = false;
-        }
-
-        // Pushable box
-        if (GameObject.Find("PushableBox") == null)
-        {
-            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = "PushableBox";
-            box.transform.position = new Vector3(2f, 0.5f, 2f);
-            var rb = box.AddComponent<Rigidbody>();
-            rb.mass = 2f;
-            SetMaterial(box, FindOrCreateMaterial("Mat_Wood", new Color(0.25f, 0.15f, 0.08f)));
+            tzs.zoneName = "Zona Ritual Altar"; 
+            tzs.horrorSystem = sys;
         }
 
         EditorUtility.SetDirty(manager);
@@ -626,8 +783,9 @@ public class UAS_HorrorSceneSetup : EditorWindow
         web.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
         web.transform.rotation = Quaternion.Euler(45, 45, 0);
         SetMaterial(web, mat);
-        // Remove collider so it doesn't block player
+        
         var col = web.GetComponent<Collider>();
         if (col != null) Object.DestroyImmediate(col);
+    }
     }
 }

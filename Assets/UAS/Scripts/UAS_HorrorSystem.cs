@@ -22,6 +22,13 @@ public class UAS_HorrorSystem : MonoBehaviour
     public AudioSource jumpScareSFX;
     public AudioSource ambientMusic;
 
+    // Dialogue State Variables
+    private bool isInDialogue = false;
+    private UAS_HorrorInteractable activeDialogueNPC = null;
+    private int currentDialogueIndex = 0;
+
+    public bool IsInDialogue => isInDialogue;
+
     // State Variables
     private UAS_HorrorInteractable currentlyHoveredInteractable;
     private bool isPlayerInTriggerZone = false;
@@ -67,6 +74,16 @@ public class UAS_HorrorSystem : MonoBehaviour
 
     private void Update()
     {
+        // Handle dialogue progression instead of raycasting
+        if (isInDialogue)
+        {
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                AdvanceDialogue();
+            }
+            return;
+        }
+
         if (cameraTransform == null) return;
 
         // Perform raycast for interactable objects and rigidbodies
@@ -79,6 +96,12 @@ public class UAS_HorrorSystem : MonoBehaviour
         if (Physics.Raycast(origin, direction, out hit, rayDistance, interactableLayer))
         {
             UAS_HorrorInteractable interactable = hit.collider.GetComponent<UAS_HorrorInteractable>();
+            if (interactable == null)
+            {
+                // check parent in case collider is on a child object
+                interactable = hit.collider.GetComponentInParent<UAS_HorrorInteractable>();
+            }
+
             if (interactable != null && interactable.isInteractable)
             {
                 hitInteractable = true;
@@ -119,10 +142,17 @@ public class UAS_HorrorSystem : MonoBehaviour
                     bool success = interactable.Interact(isPlayerInTriggerZone);
                     if (success)
                     {
-                        if (statusText != null)
-                            statusText.text = $"Sukses berinteraksi dengan {interactable.objectName}!";
-                        if (promptText != null)
-                            promptText.text = "";
+                        if (interactable.isGhostNPC && interactable.dialogueLines != null && interactable.dialogueLines.Length > 0)
+                        {
+                            StartDialogue(interactable);
+                        }
+                        else
+                        {
+                            if (statusText != null)
+                                statusText.text = $"Sukses berinteraksi dengan {interactable.objectName}!";
+                            if (promptText != null)
+                                promptText.text = "";
+                        }
                     }
                 }
             }
@@ -165,6 +195,73 @@ public class UAS_HorrorSystem : MonoBehaviour
                 }
             }
         }
+    }
+
+    // ===== DIALOGUE SYSTEM METHODS =====
+    private void StartDialogue(UAS_HorrorInteractable npc)
+    {
+        isInDialogue = true;
+        activeDialogueNPC = npc;
+        currentDialogueIndex = 0;
+        
+        // Show first line
+        ShowCurrentDialogueLine();
+        
+        // Disable cursor lock so they can look around or just let them press E
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private void ShowCurrentDialogueLine()
+    {
+        if (activeDialogueNPC == null) return;
+        
+        string line = activeDialogueNPC.dialogueLines[currentDialogueIndex];
+        if (statusText != null)
+        {
+            statusText.text = line;
+        }
+        if (promptText != null)
+        {
+            promptText.text = "[Tekan E] untuk Lanjut...";
+        }
+    }
+
+    private void AdvanceDialogue()
+    {
+        if (activeDialogueNPC == null) return;
+        
+        currentDialogueIndex++;
+        if (currentDialogueIndex < activeDialogueNPC.dialogueLines.Length)
+        {
+            ShowCurrentDialogueLine();
+        }
+        else
+        {
+            EndDialogue();
+        }
+    }
+
+    private void EndDialogue()
+    {
+        isInDialogue = false;
+        
+        // Complete the interaction on the ghost (triggers vanish, etc.)
+        if (activeDialogueNPC != null)
+        {
+            activeDialogueNPC.CompleteInteraction();
+        }
+        
+        activeDialogueNPC = null;
+        
+        if (statusText != null)
+            statusText.text = "Explore the horror zone...";
+        if (promptText != null)
+            promptText.text = "";
+            
+        // Relock cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     // ===== Trigger Zone Methods =====

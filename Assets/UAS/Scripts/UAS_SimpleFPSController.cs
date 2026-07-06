@@ -24,6 +24,9 @@ public class UAS_SimpleFPSController : MonoBehaviour
     private float cameraPitch = 0f;
     private bool cursorLocked = true;
 
+    // Link to Horror System for Dialogue pauses
+    private UAS_HorrorSystem horrorSystem;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -44,10 +47,19 @@ public class UAS_SimpleFPSController : MonoBehaviour
         // Lock cursor
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // Auto-link Horror System
+        horrorSystem = FindAnyObjectByType<UAS_HorrorSystem>();
     }
 
     void Update()
     {
+        // Freeze movement/looking when in dialogue
+        if (horrorSystem != null && horrorSystem.IsInDialogue)
+        {
+            return;
+        }
+
         HandleMouseLook();
         HandleMovement();
         HandleCursorLock();
