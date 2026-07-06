@@ -10,6 +10,7 @@ public class UAS_HorrorSceneSetup : EditorWindow
     public static void SetupHauntedHouse()
     {
         Debug.Log("=== UAS Haunted House Setup: MULAI EKSEKUSI ===");
+        UAS_SpookyCoin.coinCount = 0;
         // ============================
         // 1. LIGHTING & ATMOSPHERE (Spooky Night)
         // ============================
@@ -103,6 +104,38 @@ public class UAS_HorrorSceneSetup : EditorWindow
             tile.transform.localScale = new Vector3(3.5f, 0.15f, 1.8f);
             tile.transform.rotation = Quaternion.Euler(0f, Mathf.Sin(zVal) * 4f, 0f);
             SetMaterial(tile, foundationMat);
+
+            // Spawn a floating gold coin on specific tiles
+            if (zVal == 1 || zVal == 5 || zVal == 9 || zVal == 13 || zVal == 17)
+            {
+                GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                coin.name = $"SpookyCoin_{zVal}";
+                coin.transform.SetParent(pathwayObj.transform);
+                
+                // Position above the tile
+                coin.transform.position = new Vector3(xOffset, 1.3f, zVal);
+                // Rotate to stand vertically
+                coin.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                // Scale to look like a disk coin
+                coin.transform.localScale = new Vector3(0.4f, 0.04f, 0.4f);
+                
+                // Set gold material
+                Material goldMat = FindOrCreateMaterial("Mat_GoldCoin", new Color(1.0f, 0.82f, 0.0f));
+                goldMat.SetFloat("_Metallic", 1.0f);
+                goldMat.SetFloat("_Glossiness", 0.9f);
+                SetMaterial(coin, goldMat);
+                
+                // Add trigger collider
+                var cc = coin.GetComponent<Collider>();
+                if (cc != null) Object.DestroyImmediate(cc); // Remove default cylinder collider
+                
+                var bc = coin.AddComponent<BoxCollider>();
+                bc.isTrigger = true;
+                bc.size = new Vector3(1.2f, 1.2f, 1.2f); // Make trigger area slightly larger for easier collection
+                
+                // Add coin script
+                coin.AddComponent<UAS_SpookyCoin>();
+            }
         }
 
         // ============================
