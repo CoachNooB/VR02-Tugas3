@@ -6,8 +6,10 @@ using TMPro;
 public class UAS_HorrorSceneSetup : EditorWindow
 {
     [MenuItem("UAS/Setup Haunted House Scene")]
+    [MenuItem("LAS/Setup Haunted House Scene")]
     public static void SetupHauntedHouse()
     {
+        Debug.Log("=== UAS Haunted House Setup: MULAI EKSEKUSI ===");
         // ============================
         // 1. LIGHTING & ATMOSPHERE (Spooky Night)
         // ============================
@@ -29,7 +31,11 @@ public class UAS_HorrorSceneSetup : EditorWindow
         // ============================
         string[] oldObjects = { 
             "Floor", "Ceiling", "Wall_Left", "Wall_Right", "Wall_Back", "Wall_Front", "Haunted_House", 
-            "Spooky_Pathway", "Ghost_White", "Ghost_Bloody", "Ghost_Black", "Hantu_Penjaga", "Arwah_Penasaran" 
+            "Spooky_Pathway", 
+            "Ghost_White", "Ghost_Bloody", "Ghost_Black",
+            "Ghost_White_Int", "Ghost_Bloody_Int", "Ghost_Black_Int",
+            "Ghost_White_Ext", "Ghost_Bloody_Ext", "Ghost_Black_Ext",
+            "Hantu_Penjaga", "Arwah_Penasaran" 
         };
         foreach (string name in oldObjects)
         {
@@ -248,143 +254,49 @@ public class UAS_HorrorSceneSetup : EditorWindow
         // 8. INTERACTIVE GHOSTS & MONSTERS
         // ============================
         string ghostPrefabPath = "Assets/Monsters/Prefabs/Ghost.prefab";
-        
-        // --- 1. HANTU PENJAGA (Spawns outside, has Dialogue and Vanishes) ---
-        GameObject guardGhost = GameObject.Find("Hantu_Penjaga");
-        if (guardGhost == null)
-        {
-            var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ghostPrefabPath);
-            if (ghostPrefab != null)
-            {
-                guardGhost = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
-                guardGhost.name = "Hantu_Penjaga";
-                guardGhost.transform.position = new Vector3(0f, 1.0f, 17f); // In front of house gate porch
-                guardGhost.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // Face the approaching player
-                guardGhost.transform.localScale = Vector3.one * 1.5f;
+        Debug.Log($"=== Loading Ghost prefab from: {ghostPrefabPath} ===");
+        var ghostPrefabTest = AssetDatabase.LoadAssetAtPath<GameObject>(ghostPrefabPath);
+        Debug.Log($"=== Ghost prefab loaded: {(ghostPrefabTest != null ? "YES" : "NULL - NOT FOUND!")} ===");
 
-                // Configure interaction
-                var interactable = guardGhost.AddComponent<UAS_HorrorInteractable>();
-                interactable.objectName = "Hantu Penjaga Gerbang";
-                interactable.isGhostNPC = true;
-                interactable.dialogueLines = new string[] {
-                    "Hantu Penjaga: Hentikan langkahmu, pengembara fana...",
-                    "Hantu Penjaga: Rumah gothic di belakangku dipenuhi aura iblis jahat.",
-                    "Hantu Penjaga: Jika kamu berani memasukinya, carilah jalan untuk membebaskan mereka.",
-                    "Hantu Penjaga: Ambillah senjata laci di bunker jika kamu butuh bertahan hidup!",
-                    "Hantu Penjaga: Sekarang, jalan masuk telah terbuka. Masuklah jika kamu bernyali..."
-                };
-                interactable.vanishAfterInteract = true;
-                interactable.vanishDelay = 0.5f;
-                interactable.floatAndRotate = true;
-                interactable.floatSpeed = 2f;
-                interactable.floatHeight = 0.2f;
-
-                // Add box collider for interaction
-                var bc = guardGhost.AddComponent<BoxCollider>();
-                bc.center = new Vector3(0, 0.5f, 0);
-                bc.size = new Vector3(1.2f, 1.8f, 1.2f);
-            }
-        }
-
-        // --- 2. THREE SHEET GHOSTS (Inside Haunted House: Clean, Bloody, Black with Red Eyes) ---
-        string[] ghostNames = { "Ghost_White", "Ghost_Bloody", "Ghost_Black" };
-        Vector3[] ghostPositions = {
-            new Vector3(-2f, 1.2f, 23.5f), // Left side inside
-            new Vector3(2f, 1.2f, 25.5f),  // Right side inside
-            new Vector3(0f, 1.2f, 27.5f)   // Center back inside
-        };
-        string[][] ghostDialogues = {
+        // --- 1. THREE SHEET GHOSTS INSIDE HAUNTED HOUSE ---
+        SpawnSingleGhost("Ghost_White_Int", new Vector3(-2f, 1.2f, 23.5f), 0, ghostPrefabPath,
             new string[] {
                 "Arwah Putih: Selamat datang di rumah penderitaan ini...",
                 "Arwah Putih: Jiwa kami terikat di sini oleh kutukan ritual jahat.",
-                "Arwah Putih: Hanya dengan mengungkap rahasia peti mati di sudut ruangan kamu bisa keluar dari sini.",
+                "Arwah Putih: Hanya dengan mengungkap rahasia peti mati kamu bisa keluar.",
                 "Arwah Putih: Berhati-hatilah dengan arwah hitam di belakang..."
-            },
+            });
+        SpawnSingleGhost("Ghost_Bloody_Int", new Vector3(2f, 1.2f, 25.5f), 1, ghostPrefabPath,
             new string[] {
                 "Arwah Berdarah: Darah... mengalir di mana-mana...",
                 "Arwah Berdarah: Kekuatan kegelapan di altar ini merobek jiwa kami.",
                 "Arwah Berdarah: Carilah petunjuk di dekat altar ritual untuk melemahkan kutukan."
-            },
+            });
+        SpawnSingleGhost("Ghost_Black_Int", new Vector3(0f, 1.2f, 27.5f), 2, ghostPrefabPath,
             new string[] {
                 "Arwah Hitam: Beraninya makhluk fana menginjakkan kaki di domain kami!",
                 "Arwah Hitam: Kegelapan akan melahap jiwamu jika kamu tidak segera pergi!",
                 "Arwah Hitam: Sentuh peti mati kuno itu jika kamu berani menantang kutukan ini!"
-            }
-        };
+            });
 
-        for (int i = 0; i < 3; i++)
-        {
-            string gName = ghostNames[i];
-            GameObject ghostObj = GameObject.Find(gName);
-            if (ghostObj == null)
-            {
-                var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ghostPrefabPath);
-                if (ghostPrefab != null)
-                {
-                    ghostObj = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
-                    ghostObj.name = gName;
-                    ghostObj.transform.position = ghostPositions[i];
-                    ghostObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-                    ghostObj.transform.localScale = Vector3.one * 1.5f;
+        // --- 2. THREE SHEET GHOSTS IN FRONT OF HAUNTED HOUSE (Porch Area) ---
+        SpawnSingleGhost("Ghost_Black_Ext", new Vector3(-1.5f, 1.0f, 19f), 2, ghostPrefabPath,
+            new string[] {
+                "Arwah Hitam Penjaga: Berhenti! Tempat ini bukan untuk manusia hidup!",
+                "Arwah Hitam Penjaga: Energi iblis di dalam akan melahap jiwamu..."
+            });
+        SpawnSingleGhost("Ghost_Bloody_Ext", new Vector3(0f, 1.0f, 18f), 1, ghostPrefabPath,
+            new string[] {
+                "Arwah Berdarah Penjaga: Tubuh kami hancur... tapi jiwa kami tetap di sini...",
+                "Arwah Berdarah Penjaga: Waspadalah terhadap kegelapan di dalam rumah."
+            });
+        SpawnSingleGhost("Ghost_White_Ext", new Vector3(1.5f, 1.0f, 19f), 0, ghostPrefabPath,
+            new string[] {
+                "Arwah Putih Penjaga: Kami adalah penjaga beranda rumah terkutuk ini...",
+                "Arwah Putih Penjaga: Masuklah jika kamu ingin tahu rahasia di dalam."
+            });
 
-                    // Apply custom materials
-                    var meshRenderer = ghostObj.GetComponentInChildren<Renderer>();
-                    if (meshRenderer != null)
-                    {
-                        if (i == 0) // White Ghost
-                        {
-                            var matWhite = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Zones/Zone_Horor/Materials/Mat_GhostWhite.mat");
-                            if (matWhite == null) matWhite = FindOrCreateMaterial("Mat_GhostWhite", new Color(0.95f, 0.95f, 0.95f));
-                            meshRenderer.sharedMaterial = matWhite;
-                        }
-                        else if (i == 1) // Bloody Ghost
-                        {
-                            var matBloody = FindOrCreateMaterial("Mat_GhostBloody", new Color(0.9f, 0.6f, 0.6f));
-                            meshRenderer.sharedMaterial = matBloody;
-                        }
-                        else if (i == 2) // Black Ghost with red eyes
-                        {
-                            var matBlack = FindOrCreateMaterial("Mat_GhostBlack", new Color(0.05f, 0.05f, 0.05f));
-                            meshRenderer.sharedMaterial = matBlack;
-
-                            // Spawn two tiny glowing red eyes in front of the face
-                            GameObject eyeL = new GameObject("Eye_L");
-                            eyeL.transform.SetParent(ghostObj.transform);
-                            eyeL.transform.localPosition = new Vector3(-0.15f, 0.85f, 0.25f);
-                            var lightL = eyeL.AddComponent<Light>();
-                            lightL.type = LightType.Point;
-                            lightL.color = Color.red;
-                            lightL.intensity = 2f;
-                            lightL.range = 0.5f;
-
-                            GameObject eyeR = new GameObject("Eye_R");
-                            eyeR.transform.SetParent(ghostObj.transform);
-                            eyeR.transform.localPosition = new Vector3(0.15f, 0.85f, 0.25f);
-                            var lightR = eyeR.AddComponent<Light>();
-                            lightR.type = LightType.Point;
-                            lightR.color = Color.red;
-                            lightR.intensity = 2f;
-                            lightR.range = 0.5f;
-                        }
-                    }
-
-                    // Configure interaction
-                    var interactable = ghostObj.AddComponent<UAS_HorrorInteractable>();
-                    interactable.objectName = gName == "Ghost_White" ? "Arwah Putih" : (gName == "Ghost_Bloody" ? "Arwah Berdarah" : "Arwah Hitam");
-                    interactable.isGhostNPC = true;
-                    interactable.dialogueLines = ghostDialogues[i];
-                    interactable.vanishAfterInteract = false;
-                    interactable.floatAndRotate = true;
-                    interactable.floatSpeed = 1.2f + (i * 0.3f);
-                    interactable.floatHeight = 0.2f;
-
-                    // Add box collider for interaction
-                    var bc = ghostObj.AddComponent<BoxCollider>();
-                    bc.center = new Vector3(0, 0.5f, 0);
-                    bc.size = new Vector3(1.2f, 1.8f, 1.2f);
-                }
-            }
-        }
+        Debug.Log("=== Ghost spawning selesai ===");
 
         // --- 3. WANDERING ZOMBIES & EXTRA MONSTERS ---
         SpawnPrefab("Assets/Monsters/Prefabs/Ghost Skull.prefab", "SpookySkull_1", new Vector3(-2f, 0.8f, 13f), new Vector3(0, 45, 0), 1f);
@@ -884,5 +796,79 @@ public class UAS_HorrorSceneSetup : EditorWindow
         win.transform.localPosition = localPos;
         win.transform.localScale = localScale;
         SetMaterial(win, mat);
+    }
+
+    static void SpawnSingleGhost(string name, Vector3 pos, int type, string prefabPath, string[] dialogues)
+    {
+        if (GameObject.Find(name) != null) { Debug.Log($"Ghost '{name}' sudah ada, skip."); return; }
+        var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (ghostPrefab == null)
+        {
+            Debug.LogWarning($"GAGAL: Ghost Prefab TIDAK ditemukan di: {prefabPath}");
+            return;
+        }
+
+        GameObject ghostObj = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
+        ghostObj.name = name;
+        ghostObj.transform.position = pos;
+        ghostObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        ghostObj.transform.localScale = Vector3.one * 1.5f;
+        Debug.Log($"Ghost '{name}' berhasil di-spawn di posisi {pos}");
+
+        // Apply custom materials based on type (0=White, 1=Bloody, 2=Black)
+        var meshRenderer = ghostObj.GetComponentInChildren<Renderer>();
+        if (meshRenderer != null)
+        {
+            if (type == 0) // White Ghost
+            {
+                var matWhite = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Zones/Zone_Horor/Materials/Mat_GhostWhite.mat");
+                if (matWhite == null) matWhite = FindOrCreateMaterial("Mat_GhostWhite", new Color(0.95f, 0.95f, 0.95f));
+                meshRenderer.sharedMaterial = matWhite;
+            }
+            else if (type == 1) // Bloody Ghost
+            {
+                var matBloody = FindOrCreateMaterial("Mat_GhostBloody", new Color(0.9f, 0.6f, 0.6f));
+                meshRenderer.sharedMaterial = matBloody;
+            }
+            else if (type == 2) // Black Ghost with red eyes
+            {
+                var matBlack = FindOrCreateMaterial("Mat_GhostBlack", new Color(0.05f, 0.05f, 0.05f));
+                meshRenderer.sharedMaterial = matBlack;
+
+                // Glowing red eyes
+                GameObject eyeL = new GameObject("Eye_L");
+                eyeL.transform.SetParent(ghostObj.transform);
+                eyeL.transform.localPosition = new Vector3(-0.15f, 0.85f, 0.25f);
+                var lightL = eyeL.AddComponent<Light>();
+                lightL.type = LightType.Point;
+                lightL.color = Color.red;
+                lightL.intensity = 2f;
+                lightL.range = 0.5f;
+
+                GameObject eyeR = new GameObject("Eye_R");
+                eyeR.transform.SetParent(ghostObj.transform);
+                eyeR.transform.localPosition = new Vector3(0.15f, 0.85f, 0.25f);
+                var lightR = eyeR.AddComponent<Light>();
+                lightR.type = LightType.Point;
+                lightR.color = Color.red;
+                lightR.intensity = 2f;
+                lightR.range = 0.5f;
+            }
+        }
+
+        // Configure interaction
+        var interactable = ghostObj.AddComponent<UAS_HorrorInteractable>();
+        interactable.objectName = type == 0 ? "Arwah Putih" : (type == 1 ? "Arwah Berdarah" : "Arwah Hitam");
+        interactable.isGhostNPC = true;
+        interactable.dialogueLines = dialogues;
+        interactable.vanishAfterInteract = false;
+        interactable.floatAndRotate = true;
+        interactable.floatSpeed = 1.2f + (type * 0.3f);
+        interactable.floatHeight = 0.2f;
+
+        // Add box collider for interaction
+        var bc = ghostObj.AddComponent<BoxCollider>();
+        bc.center = new Vector3(0, 0.5f, 0);
+        bc.size = new Vector3(1.2f, 1.8f, 1.2f);
     }
 }
