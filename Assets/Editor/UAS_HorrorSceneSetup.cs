@@ -385,20 +385,20 @@ public class UAS_HorrorSceneSetup : EditorWindow
         // Wall Front (Constructed in pieces to create a doorway opening at the center)
         GameObject wallFL = GameObject.CreatePrimitive(PrimitiveType.Cube);
         wallFL.name = "Wall_Front_Left"; wallFL.transform.SetParent(house.transform);
-        wallFL.transform.localPosition = new Vector3(-2.5f, 2.25f, -4f);
-        wallFL.transform.localScale = new Vector3(3f, 4.3f, 0.1f);
+        wallFL.transform.localPosition = new Vector3(-2.8f, 2.25f, -4f);
+        wallFL.transform.localScale = new Vector3(2.4f, 4.3f, 0.1f);
         SetMaterial(wallFL, woodMat);
 
         GameObject wallFR = GameObject.CreatePrimitive(PrimitiveType.Cube);
         wallFR.name = "Wall_Front_Right"; wallFR.transform.SetParent(house.transform);
-        wallFR.transform.localPosition = new Vector3(2.5f, 2.25f, -4f);
-        wallFR.transform.localScale = new Vector3(3f, 4.3f, 0.1f);
+        wallFR.transform.localPosition = new Vector3(2.8f, 2.25f, -4f);
+        wallFR.transform.localScale = new Vector3(2.4f, 4.3f, 0.1f);
         SetMaterial(wallFR, woodMat);
 
         GameObject wallFT = GameObject.CreatePrimitive(PrimitiveType.Cube);
         wallFT.name = "Wall_Front_Top"; wallFT.transform.SetParent(house.transform);
         wallFT.transform.localPosition = new Vector3(0f, 3.65f, -4f);
-        wallFT.transform.localScale = new Vector3(2f, 1.5f, 0.1f);
+        wallFT.transform.localScale = new Vector3(3.2f, 1.5f, 0.1f);
         SetMaterial(wallFT, woodMat);
 
         // 3. A-Frame Gothic Roof (Large Left and Right angled slabs)
@@ -731,18 +731,21 @@ public class UAS_HorrorSceneSetup : EditorWindow
         }
 
         // Trigger zone near coffin (altar trigger)
-        if (GameObject.Find("TriggerZone_Coffin") == null)
+        var tz = GameObject.Find("TriggerZone_Coffin");
+        if (tz == null)
         {
-            var tz = new GameObject("TriggerZone_Coffin");
+            tz = new GameObject("TriggerZone_Coffin");
             tz.transform.position = new Vector3(0f, 1f, 25.5f); // Surrounding the altar
-            var bc = tz.AddComponent<BoxCollider>();
-            bc.isTrigger = true; 
-            bc.size = new Vector3(4f, 3f, 4f);
-            
-            var tzs = tz.AddComponent<UAS_HorrorTriggerZone>();
-            tzs.zoneName = "Zona Ritual Altar"; 
-            tzs.horrorSystem = sys;
         }
+        var bc = tz.GetComponent<BoxCollider>();
+        if (bc == null) bc = tz.AddComponent<BoxCollider>();
+        bc.isTrigger = true; 
+        bc.size = new Vector3(4f, 3f, 4f);
+        
+        var tzs = tz.GetComponent<UAS_HorrorTriggerZone>();
+        if (tzs == null) tzs = tz.AddComponent<UAS_HorrorTriggerZone>();
+        tzs.zoneName = "Zona Ritual Altar"; 
+        tzs.horrorSystem = sys;
 
         EditorUtility.SetDirty(manager);
     }
@@ -801,59 +804,149 @@ public class UAS_HorrorSceneSetup : EditorWindow
     static void SpawnSingleGhost(string name, Vector3 pos, int type, string prefabPath, string[] dialogues)
     {
         if (GameObject.Find(name) != null) { Debug.Log($"Ghost '{name}' sudah ada, skip."); return; }
-        var ghostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-        if (ghostPrefab == null)
-        {
-            Debug.LogWarning($"GAGAL: Ghost Prefab TIDAK ditemukan di: {prefabPath}");
-            return;
-        }
 
-        GameObject ghostObj = (GameObject)PrefabUtility.InstantiatePrefab(ghostPrefab);
-        ghostObj.name = name;
+        // Create parent object
+        GameObject ghostObj = new GameObject(name);
         ghostObj.transform.position = pos;
         ghostObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-        ghostObj.transform.localScale = Vector3.one * 1.5f;
-        Debug.Log($"Ghost '{name}' berhasil di-spawn di posisi {pos}");
+        ghostObj.transform.localScale = Vector3.one * 1.3f;
 
-        // Apply custom materials based on type (0=White, 1=Bloody, 2=Black)
-        var meshRenderer = ghostObj.GetComponentInChildren<Renderer>();
-        if (meshRenderer != null)
+        // Base ghost material
+        Material ghostMat;
+        if (type == 0) // White Ghost
         {
-            if (type == 0) // White Ghost
-            {
-                var matWhite = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Zones/Zone_Horor/Materials/Mat_GhostWhite.mat");
-                if (matWhite == null) matWhite = FindOrCreateMaterial("Mat_GhostWhite", new Color(0.95f, 0.95f, 0.95f));
-                meshRenderer.sharedMaterial = matWhite;
-            }
-            else if (type == 1) // Bloody Ghost
-            {
-                var matBloody = FindOrCreateMaterial("Mat_GhostBloody", new Color(0.9f, 0.6f, 0.6f));
-                meshRenderer.sharedMaterial = matBloody;
-            }
-            else if (type == 2) // Black Ghost with red eyes
-            {
-                var matBlack = FindOrCreateMaterial("Mat_GhostBlack", new Color(0.05f, 0.05f, 0.05f));
-                meshRenderer.sharedMaterial = matBlack;
+            ghostMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Zones/Zone_Horor/Materials/Mat_GhostWhite.mat");
+            if (ghostMat == null) ghostMat = FindOrCreateMaterial("Mat_GhostWhite", new Color(0.95f, 0.95f, 0.95f));
+        }
+        else if (type == 1) // Bloody Ghost
+        {
+            ghostMat = FindOrCreateMaterial("Mat_GhostBloody", new Color(0.9f, 0.6f, 0.6f));
+        }
+        else // Black Ghost
+        {
+            ghostMat = FindOrCreateMaterial("Mat_GhostBlack", new Color(0.08f, 0.08f, 0.08f));
+        }
 
-                // Glowing red eyes
-                GameObject eyeL = new GameObject("Eye_L");
-                eyeL.transform.SetParent(ghostObj.transform);
-                eyeL.transform.localPosition = new Vector3(-0.15f, 0.85f, 0.25f);
-                var lightL = eyeL.AddComponent<Light>();
-                lightL.type = LightType.Point;
-                lightL.color = Color.red;
-                lightL.intensity = 2f;
-                lightL.range = 0.5f;
+        // 1. Ghost Head (Sphere)
+        GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        head.name = "Head";
+        head.transform.SetParent(ghostObj.transform);
+        head.transform.localPosition = new Vector3(0f, 1.0f, 0f);
+        head.transform.localScale = new Vector3(0.9f, 0.9f, 0.9f);
+        SetMaterial(head, ghostMat);
 
-                GameObject eyeR = new GameObject("Eye_R");
-                eyeR.transform.SetParent(ghostObj.transform);
-                eyeR.transform.localPosition = new Vector3(0.15f, 0.85f, 0.25f);
-                var lightR = eyeR.AddComponent<Light>();
-                lightR.type = LightType.Point;
-                lightR.color = Color.red;
-                lightR.intensity = 2f;
-                lightR.range = 0.5f;
-            }
+        var cHead = head.GetComponent<Collider>();
+        if (cHead != null) Object.DestroyImmediate(cHead);
+
+        // 2. Ghost Body (Capsule)
+        GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        body.name = "Body";
+        body.transform.SetParent(ghostObj.transform);
+        body.transform.localPosition = new Vector3(0f, 0.4f, 0f);
+        body.transform.localScale = new Vector3(0.85f, 0.8f, 0.85f);
+        SetMaterial(body, ghostMat);
+
+        var cBody = body.GetComponent<Collider>();
+        if (cBody != null) Object.DestroyImmediate(cBody);
+
+        // 3. Ghost Skirt/Flow (Cylinder slightly flared at bottom)
+        GameObject skirt = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        skirt.name = "Skirt";
+        skirt.transform.SetParent(ghostObj.transform);
+        skirt.transform.localPosition = new Vector3(0f, -0.1f, -0.05f);
+        skirt.transform.localScale = new Vector3(0.85f, 0.4f, 0.85f);
+        skirt.transform.localRotation = Quaternion.Euler(15f, 0f, 0f);
+        SetMaterial(skirt, ghostMat);
+
+        var cSkirt = skirt.GetComponent<Collider>();
+        if (cSkirt != null) Object.DestroyImmediate(cSkirt);
+
+        // 4. Ghost Arms (left and right curved stubby cylinders pointing forward-down)
+        GameObject armL = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        armL.name = "Arm_L";
+        armL.transform.SetParent(ghostObj.transform);
+        armL.transform.localPosition = new Vector3(-0.45f, 0.5f, 0.2f);
+        armL.transform.localScale = new Vector3(0.18f, 0.35f, 0.18f);
+        armL.transform.localRotation = Quaternion.Euler(-60f, -30f, 0f);
+        SetMaterial(armL, ghostMat);
+
+        var cArmL = armL.GetComponent<Collider>();
+        if (cArmL != null) Object.DestroyImmediate(cArmL);
+
+        GameObject armR = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        armR.name = "Arm_R";
+        armR.transform.SetParent(ghostObj.transform);
+        armR.transform.localPosition = new Vector3(0.45f, 0.5f, 0.2f);
+        armR.transform.localScale = new Vector3(0.18f, 0.35f, 0.18f);
+        armR.transform.localRotation = Quaternion.Euler(-60f, 30f, 0f);
+        SetMaterial(armR, ghostMat);
+
+        var cArmR = armR.GetComponent<Collider>();
+        if (cArmR != null) Object.DestroyImmediate(cArmR);
+
+        // 5. Ghost Eyes (Big black spheres)
+        Material eyeMat = FindOrCreateMaterial("Mat_GhostEye", Color.black);
+        
+        GameObject eyeL = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        eyeL.name = "Eye_L";
+        eyeL.transform.SetParent(ghostObj.transform);
+        eyeL.transform.localPosition = new Vector3(-0.16f, 1.0f, 0.38f);
+        eyeL.transform.localScale = new Vector3(0.16f, 0.22f, 0.08f);
+        SetMaterial(eyeL, eyeMat);
+
+        var cEyeL = eyeL.GetComponent<Collider>();
+        if (cEyeL != null) Object.DestroyImmediate(cEyeL);
+
+        GameObject eyeR = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        eyeR.name = "Eye_R";
+        eyeR.transform.SetParent(ghostObj.transform);
+        eyeR.transform.localPosition = new Vector3(0.16f, 1.0f, 0.38f);
+        eyeR.transform.localScale = new Vector3(0.16f, 0.22f, 0.08f);
+        SetMaterial(eyeR, eyeMat);
+
+        var cEyeR = eyeR.GetComponent<Collider>();
+        if (cEyeR != null) Object.DestroyImmediate(cEyeR);
+
+        // Special effects for different types
+        if (type == 1) // Bloody Ghost
+        {
+            Material bloodMat = FindOrCreateMaterial("Mat_BloodStain", new Color(0.6f, 0.02f, 0.02f));
+            GameObject stain = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            stain.name = "BloodStain";
+            stain.transform.SetParent(ghostObj.transform);
+            stain.transform.localPosition = new Vector3(0f, 0.3f, 0.43f);
+            stain.transform.localScale = new Vector3(0.35f, 0.35f, 1f);
+            stain.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            SetMaterial(stain, bloodMat);
+
+            var cStain = stain.GetComponent<Collider>();
+            if (cStain != null) Object.DestroyImmediate(cStain);
+        }
+        else if (type == 2) // Black Ghost with red eyes
+        {
+            // Set eyes to emissive red
+            Material redGlowMat = FindOrCreateEmissiveMaterial("Mat_GhostEyeRed", Color.red, 3f);
+            SetMaterial(eyeL, redGlowMat);
+            SetMaterial(eyeR, redGlowMat);
+
+            // Add point lights behind eyes
+            GameObject eyeLightL = new GameObject("Light_L");
+            eyeLightL.transform.SetParent(ghostObj.transform);
+            eyeLightL.transform.localPosition = new Vector3(-0.16f, 1.0f, 0.5f);
+            var lightL = eyeLightL.AddComponent<Light>();
+            lightL.type = LightType.Point;
+            lightL.color = Color.red;
+            lightL.intensity = 2f;
+            lightL.range = 0.5f;
+
+            GameObject eyeLightR = new GameObject("Light_R");
+            eyeLightR.transform.SetParent(ghostObj.transform);
+            eyeLightR.transform.localPosition = new Vector3(0.16f, 1.0f, 0.5f);
+            var lightR = eyeLightR.AddComponent<Light>();
+            lightR.type = LightType.Point;
+            lightR.color = Color.red;
+            lightR.intensity = 2f;
+            lightR.range = 0.5f;
         }
 
         // Configure interaction
@@ -870,5 +963,7 @@ public class UAS_HorrorSceneSetup : EditorWindow
         var bc = ghostObj.AddComponent<BoxCollider>();
         bc.center = new Vector3(0, 0.5f, 0);
         bc.size = new Vector3(1.2f, 1.8f, 1.2f);
+        
+        Debug.Log($"Ghost '{name}' berhasil dibuat secara prosedural.");
     }
 }
